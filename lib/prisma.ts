@@ -1,4 +1,7 @@
-import { PrismaClient } from '@prisma/client/edge'
-import { withAccelerate } from '@prisma/extension-accelerate'
+const { PrismaClient } = process.env.EDGE
+  ? await import('@prisma/client/edge')
+  : await import('@prisma/client');
 
-const prisma = new PrismaClient().$extends(withAccelerate())
+
+
+export const Prisma= new PrismaClient();
