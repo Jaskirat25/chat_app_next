@@ -73,7 +73,7 @@ model Message {
   conversation   Conversation @relation(fields: [conversationId], references: [id])
 
   senderId   String
-  receiverId String?
+  receiverId String
 
   sender   User  @relation("SentMessages", fields: [senderId], references: [id])
   receiver User? @relation("ReceivedMessages", fields: [receiverId], references: [id])
