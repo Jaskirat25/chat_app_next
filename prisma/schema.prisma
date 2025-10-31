@@ -107,4 +107,5 @@ model Friendship {
 
   userA User @relation("FriendshipUserA", fields: [user1Id], references: [id])
   userB User @relation("FriendshipUserB", fields: [user2Id], references: [id])
+
 }

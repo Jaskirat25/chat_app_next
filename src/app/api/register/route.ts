@@ -2,8 +2,7 @@ import Hash from "../../../../lib/hash";
 import { Prisma } from "../../../../lib/prisma";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
-//add rate limiter
-//email verification
+
 export async function POST(request: Request) {
   try {
     const { username, email, password } = await request.json();
@@ -20,7 +19,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
       },
     });
-
+    request.headers.set("id",user.id);
     const token = jwt.sign(
       { id: user.id, username: user.username },
       process.env.JWT_SECRET!

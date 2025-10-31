@@ -5,14 +5,17 @@ import { socket } from "../socket/client";
 export default function Home() {
   const [messages, setMessages] = useState<string[]>([]);
   const [input, setInput] = useState("");
-
+  
   useEffect(() => {
     socket.connect();
+    if(socket.connected){
 
-    socket.on("receive-message", (msg) => {
-      console.log("received message", msg);
-      setMessages((prev) => [...prev, msg]);
-    });
+      socket.emit("join",);//hardcoded
+      socket.on("receive-message", (msg) => {
+        console.log("received message", msg);
+        setMessages((prev) => [...prev, msg]);
+      });
+    }
 
     return () => {
       socket.disconnect();
