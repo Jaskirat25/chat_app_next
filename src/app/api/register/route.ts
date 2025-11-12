@@ -6,20 +6,17 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const { username, email, password } = await request.json();
-    
     if (!password) {
       throw new Error("password is required");
     }
-    const hashedPassword = await Hash(password);
 
     const user = await Prisma.user.create({
-      data: {
+      data: { 
         username: username,
         email: email,
-        password: hashedPassword,
+        password:password
       },
     });
-    request.headers.set("id",user.id);
     const token = jwt.sign(
       { id: user.id, username: user.username },
       process.env.JWT_SECRET!
@@ -27,7 +24,7 @@ export async function POST(request: Request) {
 
     const response = NextResponse.json(
       { message: "User Created", user: { id: user.id, email: user.email } },
-      { status: 201 }
+      { status: 200 }
     );
 
     response.cookies.set({
@@ -38,6 +35,7 @@ export async function POST(request: Request) {
       sameSite: "lax",
       path: "/",
     });
+    console.log(response);
     return response;
 
   } catch (error) {
