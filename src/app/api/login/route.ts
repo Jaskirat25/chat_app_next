@@ -8,7 +8,7 @@ export async function POST(request: Request) {
     if (!password) {
       throw new Error("password is required");
     }
-
+    
     const user = await Prisma.user.findUnique({
       where: {
         email: email,
@@ -17,15 +17,17 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ message: "Need to register first!!" });
     }
-
+    
+  
     const pass = await bcrypt.compare(password, user.password);
     if (!pass) {
       return NextResponse.json({ message: "wrong password" });
     }
     const token = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.JWT_SECRET!
+      process.env.NEXT_PUBLIC_JWT_SECRET!
     );
+
     const response = NextResponse.json(
       { message: "User Logged in", user: { id: user.id, email: user.email } },
       { status: 201 }

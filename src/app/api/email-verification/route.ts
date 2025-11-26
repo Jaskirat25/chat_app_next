@@ -1,3 +1,4 @@
+import { changePassword } from "../../../../lib/otp";
 import redis from "../../../../lib/redis";
 import { NextRequest, NextResponse } from 'next/server';
 type redis_otp={
