@@ -1,53 +1,108 @@
 "use client";
 
-import { Ellipsis, Search, Send, User } from "lucide-react";
-import Image from "next/image";
+import { Check, CheckCheck, Ellipsis, Search, Send, User } from "lucide-react";
 import { formatChatTimestamp } from "../../lib/dateFormatter";
-import { useState } from "react";
-import { dummyMessages } from "../../data/dummyMessages";
-export default function Home() {
-  const [selectedUser, setSelectedUser] = useState("");
-  const [userOnline, setUserOnline] = useState(true);
-  const chats = [
+import { useEffect, useState } from "react";
+import api from "../../lib/axios";
+import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
+import Image from "next/image";
+import { io } from "socket.io-client";
+const socket=io("http://localhost:3001");
+interface User {
+  id: string;
+  username: string;
+  email: string;
+  profilePic?: string | null;
+  lastSeen: string;
+  password: string;
+}
+interface message {
+  id: string;
+  content: string;
+  photoUrl: string;
+  createdAt: Date;
+  updatedAt: Date;
+  isEdited: boolean;
+  conversationId: string;
+  senderId: string;
+  receiverId: string;
+  statuses: [
     {
-      name: "anil",
-      imageUrl: "",
-      chats: [
-        {
-          content: "April fool's day",
-          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
-          userId: "3",
-        },
-      ],
-    },
-    {
-      name: "Dost",
-      imageUrl: "",
-      chats: [
-        {
-          content: "Sexy",
-          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
-          userId: "2",
-        },
-      ],
-    },
-    {
-      name: "Mary ma'am",
-      imageUrl: "",
-      chats: [
-        {
-          content: "You have to report it...",
-          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
-          userId: "1",
-        },
-      ],
+      id: string;
+      messageId: string;
+      status: string;
+      updatedAt: Date;
     },
   ];
+}
+export default function Home() {
+  const [userFriends, setUserFriends] = useState<User[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [messages, setMessages] = useState<message[]>([]);
+  const [userOnline, setUserOnline] = useState(true);
+  const [userId, setUserId] = useState("");
+  const [input, setInput] = useState("");
+ useEffect(() => {
+  const handleReceive = (msg: any) => {
+    setMessages((prev) => [...prev, msg]);
+  };
+
+  socket.on("receive-message", handleReceive);
+
+  return () => {
+    socket.off("receive-message", handleReceive);
+  };
+}, []);
+
+  useEffect(() => {
+    const fetchFriends = async () => {
+      console.log("hi");
+      const token = Cookies.get("auth-token");
+      if (!token) return;
+      const { id } = jwtDecode(token) as { id: string };
+      setUserId(id);
+      const response = await api.post("/api/Users/fetchUsers", { user_id: id });
+
+      if (response) {
+        setUserFriends(response.data.data);
+      } else return;
+    };
+
+    fetchFriends();
+  }, []);
+
+  useEffect(() => {
+    setMessages([]);
+    const fetchChats = async () => {
+      const chats = await api.get(
+        `/api/Users/fetchChats?token=${selectedUser?.id}`
+      );
+      if (!chats) return;
+      const messages = chats.data.chatData?.messages;
+
+      if (!messages || messages.length === 0) {
+        setMessages([]);
+        return;
+      }
+      if (chats) {
+        setMessages(chats.data.chatData.messages);
+      }
+    };
+    fetchChats();
+  }, [selectedUser]);
+  const handleSend = () => {
+    if(input=="")return;
+    setInput("");
+    // call for conversation id and store messsage in db
+  };
+  
   return (
-    <div className="h-screen w-screen p-4">
-      <div className="w-full h-full bg-gray-300   rounded-3xl">
-        <div className="grid grid-cols-3 h-full gap-5">
-          <div className="col-span-1  p-4">
+    <div className="h-screen w-screen p-4 overflow-hidden">
+      <div className="w-full h-full bg-gray-300 rounded-3xl overflow-hidden">
+        <div className="grid grid-cols-3 h-full gap-5 overflow-hidden">
+          {/* LEFT SIDEBAR */}
+          <div className="col-span-1 p-4 overflow-hidden">
             <div className="rounded-md h-10 bg-gray-100 flex items-center px-3 gap-2">
               <Search size={20} className="text-gray-500" />
               <input
@@ -56,100 +111,135 @@ export default function Home() {
                 className="flex-1 bg-transparent outline-none text-sm"
               />
             </div>
-            <div className="my-5 rounded-lg bg-gray-100 py-3 px-3 shadow-xs shadow-pink-300">
+
+            <div className="my-5 rounded-lg bg-gray-100 py-3 px-3 shadow-xs shadow-pink-300 overflow-y-auto h-[calc(100%-4rem)]">
               <p className="font-bold text-2xl my-4">Chats</p>
 
-              {chats.map((chat, index) => (
-                <div
-                  key={index}
-                  onClick={() => {
-                    setSelectedUser(chat.name);
-                  }}
-                  className="flex flex-col gap-2 p-3 hover:bg-gray-200 hover:rounded-2xl "
-                >
-                  <div className="flex gap-4">
-                    <div className="mt-1">
-                      {chat.imageUrl ? (
-                        <Image
-                          src={chat.imageUrl}
-                          width={60}
-                          height={60}
-                          alt={chat.imageUrl}
-                        />
-                      ) : (
-                        <div className="rounded-full border-2">
-                          <User className="size-8" />
-                        </div>
-                      )}
+              {userFriends.map((chat, index) => {
+                return (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedUser(chat)}
+                    className="flex flex-col gap-2 p-3 hover:bg-gray-200 hover:rounded-2xl cursor-pointer"
+                  >
+                    <div className="flex gap-4">
+                      <div className="mt-1">
+                        {chat.profilePic ? (
+                          <Image
+                            src={chat.profilePic}
+                            width={60}
+                            height={60}
+                            alt={chat.profilePic}
+                          />
+                        ) : (
+                          <div className="rounded-full border-2 p-1">
+                            <User className="size-8" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col flex-1 overflow-hidden">
+                        <p className="font-bold">{chat.username}</p>
+                        <p className="font-light truncate">
+                          {"chat.chats[0]?.content"}
+                        </p>
+                      </div>
+
+                      <div className="flex justify-end">
+                        <p className="font-light text-gray-500 text-sm">
+                          {/* {chat.chats[0]
+                          ? formatChatTimestamp("chat.chats[0].createdAt")
+                          : ""} */}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex flex-col flex-1">
-                      <p className="font-bold">{chat.name}</p>
-                      <p className="font-light">{chat.chats[0]?.content}</p>
-                    </div>
-                    <div className="flex justify-end">
-                      <p className="font-light text-gray-500">
-                        {chat.chats[0]
-                          ? formatChatTimestamp(chat.chats[0].createdAt)
-                          : ""}
-                      </p>
-                    </div>
+
+                    <hr className="w-full border-t border-gray-600 opacity-20" />
                   </div>
-                  <hr className="w-full mask-l-from-12 mask-r-from-12 border-t border-gray-600" />
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-          <div className="flex flex-col  col-span-2">
-            <div className="flex  p-2">
-              <div className="flex  py-2 px-3 gap-3.5">
-                <User className="border rounded-2xl size-7 " />
-                <p>{selectedUser}</p>
+
+          {/* RIGHT CHAT WINDOW */}
+          <div className="flex flex-col col-span-2 h-full relative overflow-hidden bg-gray-300 ">
+            {/* Header */}
+            <div className="flex items-center p-4 border-b  sticky top-0 z-30">
+              <div className="flex items-center gap-3">
+                <User className="border rounded-2xl size-7" />
+                <p className="font-semibold">{selectedUser?.username}</p>
+
                 <div
-                  className={`w-2 border-2 h-2 mt-2.5 -ml-1 ${userOnline ? " bg-red-700 border-red-700" : " bg-green-700 border-green-700"} rounded-2xl`}
+                  className={`w-3 h-3 rounded-full ${
+                    userOnline ? "bg-green-600" : "bg-red-600"
+                  }`}
                 ></div>
               </div>
 
-              <Ellipsis
-                onClick={() => {}}
-                className="ml-auto mr-3 cursor-pointer"
-              />
+              <Ellipsis className="ml-auto mr-2 cursor-pointer" />
             </div>
-            <div className="flex flex-col gap-2 p-4">
-              {dummyMessages.messages.map((message) => (
+
+            {/* Chat messages (only this scrolls!) */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.map((message) => (
                 <div
-                  key={message.id}  
+                  key={message.id}
                   className={`flex ${
-                    message.senderId === "user-1"
+                    message.senderId === userId
                       ? "justify-end"
                       : "justify-start"
                   }`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-lg max-w-xs ${
-                      message.senderId === "user-1"
+                    className={`px-4 py-2 rounded-xl max-w-xs break-words shadow-sm ${
+                      message.senderId === userId
                         ? "bg-blue-600 text-white"
-                        : "bg-gray-200 text-black"
+                        : "bg-gray-200 text-gray-800"
                     }`}
                   >
-                    {message.content}
+                    <div>{message.content}</div>
+                    <div className="flex justify-end gap-1">
+                      <div className="mt-1 opacity-60 text-xs text-right">
+                        {formatChatTimestamp(
+                          new Date(message.createdAt).toISOString()
+                        )}
+                      </div>
+                      <div className=" text-xs text-right">
+                        {message.statuses[0].status == "SENT" ? (
+                          <Check />
+                        ) : message.statuses[0].status == "DELIVERED" ? (
+                          <CheckCheck />
+                        ) : (
+                          <CheckCheck color="red" />
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
+            {/* Input bar */}
+            <div className="flex items-center gap-3 p-3 bg-gray-300 sticky bottom-0 z-70 shadow-2xl rounded-4xl mr-2.5">
+              <input
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSend();
+                  }
+                }}
+                onChange={(e)=>setInput(e.target.value)}
+                value={input}
+                type="text"
+                placeholder="Type a message..."
+                className="flex-1 bg-gray-100 border border-gray-300 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+              />
 
-<div className="flex items-center w-7/8 gap-3 p-3">
-  <input
-    type="text"
-    placeholder="Type a message..."
-    className="flex-1 bg-gray-100 border border-gray-300 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-  />
-
-  <button className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition">
-    <Send size={18} />
-  </button>
-</div>
-
+              <button className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition" onClick={()=>{
+                handleSend()
+              }}>
+                <Send size={18} />
+              </button>
+            </div>
           </div>
         </div>
       </div>

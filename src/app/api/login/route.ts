@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       name: "auth-token",
       value: token,
       maxAge: 60 * 60 * 7 * 24,
-      httpOnly: true,
+      httpOnly: false,
       sameSite: "lax",
       path: "/",
     });

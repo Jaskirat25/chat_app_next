@@ -7,7 +7,7 @@ export const dummyMessages={
       createdAt: "2025-01-10T12:00:00Z",
       senderId: "user-1",
       isEdited: false,
-      statuses: [{ status: "SENT", updatedAt: "2025-01-10T12:00:02Z" }]
+       status: "SENT", updatedAt: "2025-01-10T12:00:02Z" 
     },
 
     {
@@ -85,4 +85,40 @@ export const dummyMessages={
     }
   ]
 }
+export const chats=[
+    {
+      name: "anil",
+      imageUrl: "",
+      chats: [
+        {
+          content: "April fool's day",
+          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
+          userId: "3",
+        },
+      ],
+    },
+    {
+      name: "Dost",
+      imageUrl: "",
+      chats: [
+        {
+          content: "Ssjfslkdj",
+          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
+          userId: "2",
+        },
+      ],
+    },
+    {
+      name: "Mary ma'am",
+      imageUrl: "",
+      chats: [
+        {
+          content: "You have to report it...",
+          createdAt: "Fri Nov 28 2025 21:21:50 GMT+0530 (India Standard Time)",
+          userId: "1",
+        },
+      ],
+    },
+  ]
+
 
