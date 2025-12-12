@@ -8,7 +8,8 @@ import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { io } from "socket.io-client";
-const socket=io("http://localhost:3001");
+import redis from "../../lib/redis";
+const socket = io("http://localhost:3001");
 interface User {
   id: string;
   username: string;
@@ -43,17 +44,18 @@ export default function Home() {
   const [userOnline, setUserOnline] = useState(true);
   const [userId, setUserId] = useState("");
   const [input, setInput] = useState("");
- useEffect(() => {
-  const handleReceive = (msg: any) => {
-    setMessages((prev) => [...prev, msg]);
-  };
+  const [conversationId, setConversationId] = useState("");
+  useEffect(() => {
+    const handleReceive = (msg: any) => {
+      setMessages((prev) => [...prev, msg]);
+    };
 
-  socket.on("receive-message", handleReceive);
+    socket.on("receive-message", handleReceive);
 
-  return () => {
-    socket.off("receive-message", handleReceive);
-  };
-}, []);
+    return () => {
+      socket.off("receive-message", handleReceive);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -75,28 +77,33 @@ export default function Home() {
   useEffect(() => {
     setMessages([]);
     const fetchChats = async () => {
-      const chats = await api.get(
-        `/api/Users/fetchChats?token=${selectedUser?.id}`
-      );
+      const { conversationId } = (
+        await api.get(`/api/fetchConversationId?token=${selectedUser?.id}`)
+      ).data;
+      setConversationId(conversationId);
+      const chats = await api.get(`/api/${conversationId}`);
       if (!chats) return;
-      const messages = chats.data.chatData?.messages;
+      const messages = chats.data?.messages;
 
       if (!messages || messages.length === 0) {
         setMessages([]);
         return;
       }
       if (chats) {
-        setMessages(chats.data.chatData.messages);
+        setMessages(chats.data.messages);
       }
     };
     fetchChats();
   }, [selectedUser]);
+
   const handleSend = () => {
-    if(input=="")return;
+    if (input == "") return;
     setInput("");
-    // call for conversation id and store messsage in db
+    try {
+      //now just call for storing the message in with that conversation id
+    } catch (error) {}
   };
-  
+
   return (
     <div className="h-screen w-screen p-4 overflow-hidden">
       <div className="w-full h-full bg-gray-300 rounded-3xl overflow-hidden">
@@ -227,16 +234,19 @@ export default function Home() {
                     handleSend();
                   }
                 }}
-                onChange={(e)=>setInput(e.target.value)}
+                onChange={(e) => setInput(e.target.value)}
                 value={input}
                 type="text"
                 placeholder="Type a message..."
                 className="flex-1 bg-gray-100 border border-gray-300 rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
               />
 
-              <button className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition" onClick={()=>{
-                handleSend()
-              }}>
+              <button
+                className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition"
+                onClick={() => {
+                  handleSend();
+                }}
+              >
                 <Send size={18} />
               </button>
             </div>

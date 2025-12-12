@@ -2,18 +2,15 @@ import { NextRequest } from "next/server";
 import { Prisma } from "../../../../lib/prisma";
 
 export async function GET(req: NextRequest, { params }: { params: { conversationId: string } }) {
+   const id= params.conversationId;
     const conversation = await Prisma.conversation.findFirst({
         where: {
-            id: params.conversationId,
+            id:id,
         },
         include:{
             messages:{
-                select:{
-                    content:true,
-                    photoUrl:true,
-                    createdAt:true,
-                    senderId:true,
-                    receiverId:true
+                include:{
+                    statuses:true
                 },
                 orderBy:{
                     createdAt:"asc"
