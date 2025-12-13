@@ -9,7 +9,7 @@ import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { io } from "socket.io-client";
 import redis from "../../lib/redis";
-const socket = io("http://localhost:3001");
+// const socket = io("http://localhost:3001");
 interface User {
   id: string;
   username: string;
@@ -50,10 +50,10 @@ export default function Home() {
       setMessages((prev) => [...prev, msg]);
     };
 
-    socket.on("receive-message", handleReceive);
+    // socket.on("receive-message", handleReceive);
 
     return () => {
-      socket.off("receive-message", handleReceive);
+      // socket.off("receive-message", handleReceive);
     };
   }, []);
 
@@ -77,11 +77,12 @@ export default function Home() {
   useEffect(() => {
     setMessages([]);
     const fetchChats = async () => {
-      const { conversationId } = (
+      const id = (
         await api.get(`/api/fetchConversationId?token=${selectedUser?.id}`)
-      ).data;
-      setConversationId(conversationId);
-      const chats = await api.get(`/api/${conversationId}`);
+      ).data.chatData;
+      
+      const convo_Id=id.id;
+      const chats = await api.get(`/api/conversation/${convo_Id}`);
       if (!chats) return;
       const messages = chats.data?.messages;
 
@@ -89,6 +90,7 @@ export default function Home() {
         setMessages([]);
         return;
       }
+      setConversationId(convo_Id);
       if (chats) {
         setMessages(chats.data.messages);
       }
