@@ -8,8 +8,14 @@ import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { io } from "socket.io-client";
-import redis from "../../lib/redis";
-// const socket = io("http://localhost:3001");
+// import { socket } from "@/socket/client";
+  const token = Cookies.get("auth-token");
+    const { id } = jwtDecode(token!) as { id: string };
+  const socket = io("http://localhost:3001",{
+    auth:{
+      token:id
+    }
+  });
 interface User {
   id: string;
   username: string;
@@ -47,13 +53,14 @@ export default function Home() {
   const [conversationId, setConversationId] = useState("");
   useEffect(() => {
     const handleReceive = (msg: any) => {
+      console.log("hiijj")
       setMessages((prev) => [...prev, msg]);
     };
 
-    // socket.on("receive-message", handleReceive);
+    socket.on("receive-message", handleReceive);
 
     return () => {
-      // socket.off("receive-message", handleReceive);
+      socket.off("receive-message", handleReceive);
     };
   }, []);
 
@@ -76,12 +83,13 @@ export default function Home() {
 
   useEffect(() => {
     setMessages([]);
+    
     const fetchChats = async () => {
       const id = (
         await api.get(`/api/fetchConversationId?token=${selectedUser?.id}`)
-      ).data.chatData;
+      ).data;
       
-      const convo_Id=id.id;
+      const convo_Id=id.conversationId;
       const chats = await api.get(`/api/conversation/${convo_Id}`);
       if (!chats) return;
       const messages = chats.data?.messages;
@@ -90,7 +98,7 @@ export default function Home() {
         setMessages([]);
         return;
       }
-      setConversationId(convo_Id);
+      setConversationId(convo_Id)
       if (chats) {
         setMessages(chats.data.messages);
       }
@@ -103,7 +111,25 @@ export default function Home() {
     setInput("");
     try {
       //now just call for storing the message in with that conversation id
-    } catch (error) {}
+      const messageData={
+        content:input,
+        conversationId:conversationId,
+        senderId:userId,
+        receiverId:selectedUser?.id,
+      }
+      const storeMessage=async ()=>{
+        const newMessage=await api.post("/api/conversation/store",messageData);
+        console.log(newMessage.data)
+        if(newMessage.data.status==200){
+          socket.emit("send-message",{
+            receiverId:selectedUser?.id,
+            message:input
+          })
+        }
+      }
+      storeMessage();
+        
+    } catch (error) {console.log(error)}
   };
 
   return (
@@ -214,13 +240,13 @@ export default function Home() {
                         )}
                       </div>
                       <div className=" text-xs text-right">
-                        {message.statuses[0].status == "SENT" ? (
+                        {/* {message.statuses[0].status == "SENT" ? (
                           <Check />
                         ) : message.statuses[0].status == "DELIVERED" ? (
                           <CheckCheck />
                         ) : (
                           <CheckCheck color="red" />
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>
