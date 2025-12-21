@@ -3,19 +3,12 @@
 import { Check, CheckCheck, Ellipsis, Search, Send, User } from "lucide-react";
 import { formatChatTimestamp } from "../../lib/dateFormatter";
 import { useEffect, useState } from "react";
-import api from "../../lib/axios";
+import api from "@/lib/axios";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { io } from "socket.io-client";
 // import { socket } from "@/socket/client";
-  const token = Cookies.get("auth-token");
-    const { id } = jwtDecode(token!) as { id: string };
-  const socket = io("http://localhost:3001",{
-    auth:{
-      token:id
-    }
-  });
 interface User {
   id: string;
   username: string;
@@ -51,9 +44,19 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState("");
+  useEffect(()=>{
+    const token = Cookies.get("auth-token");
+    if (!token) return;
+    const { id } = jwtDecode(token!) as { id: string };
+    setUserId(id);
+  },[])
+  const socket = io("http://localhost:3001",{
+    auth:{
+      token:userId
+    }
+  });
   useEffect(() => {
     const handleReceive = (msg: any) => {
-      console.log("hiijj")
       setMessages((prev) => [...prev, msg]);
     };
 
@@ -66,7 +69,6 @@ export default function Home() {
 
   useEffect(() => {
     const fetchFriends = async () => {
-      console.log("hi");
       const token = Cookies.get("auth-token");
       if (!token) return;
       const { id } = jwtDecode(token) as { id: string };
@@ -119,7 +121,6 @@ export default function Home() {
       }
       const storeMessage=async ()=>{
         const newMessage=await api.post("/api/conversation/store",messageData);
-        console.log(newMessage.data)
         if(newMessage.data.status==200){
           socket.emit("send-message",{
             receiverId:selectedUser?.id,

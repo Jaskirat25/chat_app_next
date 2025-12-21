@@ -1,19 +1,21 @@
 import bcrypt from "bcryptjs";
-import { Prisma } from "../../../../lib/prisma";
+import prisma  from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
+    console.log('hi')
     const { email, password } = await request.json();
     if (!password) {
       throw new Error("password is required");
     }
-    
-    const user = await Prisma.user.findUnique({
+    console.log(password)
+    const user = await prisma.user.findFirst({
       where: {
         email: email,
       },
     });
+    console.log(user)
     if (!user) {
       return NextResponse.json({ message: "Need to register first!!" });
     }

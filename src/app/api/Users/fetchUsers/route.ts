@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "../../../../../lib/prisma";
+import  prisma  from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
     const {user_id}=await request.json();
     
-    const userWithFriends = await Prisma.user.findFirst({
+    const userWithFriends = await prisma.user.findFirst({
       where: { id: user_id },
       include: {
         friendshipsA: {
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
     
     if(userWithFriends){
   const friends = [
-    ...userWithFriends?.friendshipsA.map(f => f.userB),
-    ...userWithFriends?.friendshipsB.map(f => f.userA)
+    ...userWithFriends?.friendshipsA.map((f: { userB: any; }) => f.userB),
+    ...userWithFriends?.friendshipsB.map((f: { userA: any; }) => f.userA)
   ];
   return NextResponse.json({data:friends , status:200});
 }

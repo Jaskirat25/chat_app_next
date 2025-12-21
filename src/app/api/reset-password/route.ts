@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import redis from "../../../../lib/redis";
-import { Prisma } from "../../../../lib/prisma";
+import  prisma  from "../../../../lib/prisma";
 import { isValidEmail } from "../../../../lib/email-check";
 import Hash from "../../../../lib/hash";
 
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   }
   const hashedPassword = await Hash(password);
   if (isValidEmail(email)) {
-    const res = await Prisma.user.update({
+    const res = await prisma.user.update({
       where: {
         email: email,
       },

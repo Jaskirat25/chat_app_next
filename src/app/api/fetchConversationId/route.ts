@@ -1,4 +1,4 @@
-import { Prisma } from "../../../../lib/prisma";
+import prisma from "@/lib/prisma"; 
 import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { NextResponse } from "next/server";
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
     if (cachedConversationId!=null) {
       return NextResponse.json({ conversationId: cachedConversationId });
     }
-    const conversation = await Prisma.conversation.findFirst({
+    const conversation = await prisma.conversation.findFirst({
       where: {
         isGroup:false,
         AND: [

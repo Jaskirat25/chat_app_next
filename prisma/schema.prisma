@@ -1,111 +1,78 @@
-    // This is your Prisma schema file,
-    // learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
-    // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-    // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+datasource db {
+  provider = "postgresql"
+}
 
-    generator client {
-      provider = "prisma-client-js"
-    }
+model User {
+  id                  String               @id @default(uuid())
+  username            String               @unique
+  email               String               @unique
+  password            String
+  profilePic          String?
+  lastSeen            DateTime             @default(now())
+  conversationMembers ConversationMember[]
+  friendshipsA        Friendship[]         @relation("FriendshipUserA")
+  friendshipsB        Friendship[]         @relation("FriendshipUserB")
+  receivedMessages    Message[]            @relation("ReceivedMessages")
+  sentMessages        Message[]            @relation("SentMessages")
+}
 
-    datasource db {
-      provider = "postgresql"
-      url      = env("DATABASE_URL")
-    }
+model Conversation {
+  id        String               @id @default(uuid())
+  name      String?
+  isGroup   Boolean              @default(false)
+  createdAt DateTime             @default(now())
+  members   ConversationMember[]
+  messages  Message[]
+}
 
-    // ========== USER ==========
-    model User {
-      id         String   @id @default(uuid())
-      username   String   @unique
-      email      String   @unique
-      password   String
-      profilePic String? // optional avatar
-      lastSeen   DateTime @default(now())
+model ConversationMember {
+  id             String       @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+}
 
-      // Messages
-      sentMessages     Message[] @relation("SentMessages")
-      receivedMessages Message[] @relation("ReceivedMessages")
+model Message {
+  id             String          @id @default(uuid())
+  content        String?
+  photoUrl       String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  isEdited       Boolean         @default(false)
+  conversationId String
+  senderId       String
+  receiverId     String?
+  conversation   Conversation    @relation(fields: [conversationId], references: [id])
+  receiver       User?           @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender         User            @relation("SentMessages", fields: [senderId], references: [id])
+  statuses       MessageStatus[]
+}
 
-      // Conversation participants
-      conversationMembers ConversationMember[]
+model MessageStatus {
+  id        String   @id @default(uuid())
+  messageId String
+  status    Status   @default(SENT)
+  updatedAt DateTime @default(now())
+  message   Message  @relation(fields: [messageId], references: [id])
+}
 
-      // Friendships
-      friendshipsA  Friendship[]    @relation("FriendshipUserA")
-      friendshipsB  Friendship[]    @relation("FriendshipUserB")
-      
-    }
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  user1Id   String
+  user2Id   String
+  createdAt DateTime @default(now())
+  userA     User     @relation("FriendshipUserA", fields: [user1Id], references: [id])
+  userB     User     @relation("FriendshipUserB", fields: [user2Id], references: [id])
+}
 
-    // ========== CONVERSATION ==========
-    model Conversation {
-      id        String   @id @default(uuid())
-      name      String? // for group chats
-      isGroup   Boolean  @default(false)
-      createdAt DateTime @default(now())
-
-      // Messages in this conversation
-      messages Message[]
-
-      members ConversationMember[]
-    }
-
-    model ConversationMember {
-      id             String           @id @default(uuid())
-      conversationId String
-      userId         String
-      joinedAt       DateTime         @default(now())
-    
-
-      conversation Conversation @relation(fields: [conversationId], references: [id])
-      user         User         @relation(fields: [userId], references: [id])
-    }
-
-
-    model Message {
-      id        String   @id @default(uuid())
-      content   String?
-      photoUrl  String?
-      createdAt DateTime @default(now())
-      updatedAt DateTime @updatedAt
-      isEdited  Boolean  @default(false)
-
-      // Relations
-      conversationId String
-      conversation   Conversation @relation(fields: [conversationId], references: [id])
-
-      senderId   String
-      receiverId String
-
-      sender   User  @relation("SentMessages", fields: [senderId], references: [id])
-      receiver User? @relation("ReceivedMessages", fields: [receiverId], references: [id])
-
-      // Statuses (delivered/read etc)
-      statuses MessageStatus[]
-    }
-
-    // ========== MESSAGE STATUS ==========
-    model MessageStatus {
-      id        String   @id @default(uuid())
-      messageId String
-      status    Status   @default(SENT)
-      updatedAt DateTime @default(now())
-
-      message Message @relation(fields: [messageId], references: [id])
-    }
-
-    enum Status {
-      SENT
-      DELIVERED
-      READ
-    }
-
-    // ========== FRIENDSHIP ==========
-    model Friendship {
-      id        Int      @id @default(autoincrement())
-      user1Id   String
-      user2Id   String
-      createdAt DateTime @default(now())
-
-      userA User @relation("FriendshipUserA", fields: [user1Id], references: [id])
-      userB User @relation("FriendshipUserB", fields: [user2Id], references: [id])
-
-    }
+enum Status {
+  SENT
+  DELIVERED
+  READ
+}

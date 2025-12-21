@@ -1,5 +1,5 @@
 import Hash from "../../../../lib/hash";
-import { Prisma } from "../../../../lib/prisma";
+import  prisma  from "../../../../lib/prisma";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 
@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       throw new Error("password is required");
     }
 
-    const user = await Prisma.user.create({
+    const user = await prisma.user.create({
       data: { 
         username: username,
         email: email,

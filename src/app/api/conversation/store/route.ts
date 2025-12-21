@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "../../../../../lib/prisma";
+import prisma from "@/lib/prisma";
+import { PrismaClient } from "@/prisma/generated/prisma";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 🔒 Ensure conversation exists
-    const conversation = await Prisma.conversation.findUnique({
+    const conversation = await prisma.conversation.findUnique({
       where: { id: conversationId },
     });
 
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const message = await Prisma.message.create({
+    const message = await prisma.message.create({
       data: {
         content,
         conversationId,
