@@ -6,6 +6,7 @@ import redis from "../../../../lib/redis";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const receiver_id = searchParams.get("token");
+
   if (!receiver_id) {
     return NextResponse.json(
       { error: "Receiver ID missing" },
@@ -25,10 +26,10 @@ export async function GET(request: Request) {
   
   try {
     const cacheKey = `${userId}:${receiver_id}`;
-  
-   
+    
+    
     const cachedConversationId = await redis.get(cacheKey);
-
+    
     if (cachedConversationId!=null) {
       return NextResponse.json({ conversationId: cachedConversationId });
     }

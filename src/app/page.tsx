@@ -90,7 +90,7 @@ export default function Home() {
       const id = (
         await api.get(`/api/fetchConversationId?token=${selectedUser?.id}`)
       ).data;
-      
+      console.log(id)
       const convo_Id=id.conversationId;
       const chats = await api.get(`/api/conversation/${convo_Id}`);
       if (!chats) return;
@@ -119,6 +119,7 @@ export default function Home() {
         senderId:userId,
         receiverId:selectedUser?.id,
       }
+      console.log(messageData)
       const storeMessage=async ()=>{
         const newMessage=await api.post("/api/conversation/store",messageData);
         if(newMessage.data.status==200){
@@ -127,6 +128,8 @@ export default function Home() {
             message:input
           })
         }
+          console.log(newMessage)
+        
       }
       storeMessage();
         

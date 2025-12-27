@@ -8,9 +8,6 @@
     "build": "next build",
     "start": "next start"
   },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  },
   "dependencies": {
     "@heroui/input-otp": "^2.1.27",
     "@prisma/adapter-pg": "^7.2.0",
@@ -43,7 +40,7 @@
     "@types/express": "^5.0.3",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "24.7.1",
+    "@types/node": "^24.7.1",
     "@types/pg": "^8.16.0",
     "@types/react": "19.2.2",
     "autoprefixer": "^10.4.21",
@@ -51,6 +48,7 @@
     "prisma": "^7.2.0",
     "tailwindcss": "^4.1.14",
     "ts-node": "^10.9.2",
-    "typescript": "5.9.3"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }
