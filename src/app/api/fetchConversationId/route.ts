@@ -37,12 +37,12 @@ export async function GET(request: Request) {
       where: {
         isGroup:false,
         AND: [
-          { members: { some: { userId } } },
+          { members: { some: { userId:userId } } },
           { members: { some: { userId: receiver_id } } },
         ],
       },
     });
-
+   
     if (!conversation) {
       return NextResponse.json({ conversationId: null });
     }
