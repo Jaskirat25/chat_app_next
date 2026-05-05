@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, Search, Send, User as UserIcon } from "lucide-react";
+import { Search, Send, User as UserIcon } from "lucide-react";
 import { formatChatTimestamp } from "../../lib/dateFormatter";
 import { useEffect, useRef, useState } from "react";
 import api from "@/lib/axios";
@@ -33,7 +33,7 @@ interface Message {
   conversationId: string;
   senderId: string;
   receiverId: string;
-  statuses?: any[];
+  statuses?: Record<string, unknown>[];
 }
 
 export default function Home() {
@@ -210,7 +210,7 @@ export default function Home() {
       fetchFriends();
     });
 
-    const handleReceive = (msg: any) => {
+    const handleReceive = (msg: { from: string; [key: string]: unknown }) => {
       if (selectedUser?.id === msg.from) {
         setMessages((prev) => [...prev, msg]);
         setUnreadCounts((prev) => ({ ...prev, [msg.from]: 0 }));

@@ -15,7 +15,6 @@ export default function Login() {
 
   const [timer, setTimer] = useState(0);
 
-
   useEffect(() => {
     if (timer <= 0) {
       return;
@@ -28,20 +27,18 @@ export default function Login() {
   }, [timer]);
 
   const handleForgetPassword = async (
-    e: React.MouseEvent<HTMLButtonElement>
+    e: React.MouseEvent<HTMLButtonElement>,
   ) => {
     setLoading(true);
     e.preventDefault();
     try {
-      if(isValidEmail(email)){
+      if (isValidEmail(email)) {
         const response = await changePassword(email);
-         if (response.success) {
-          
-           setTimer(30); // Start countdown
-           toast.success(`Link sent to ${email} successfully`);
-          }
+        if (response.success) {
+          setTimer(30); // Start countdown
+          toast.success(`Link sent to ${email} successfully`);
         }
-
+      }
     } catch (error) {
       if (error instanceof Error) toast.error(error.message);
       console.log(error);
@@ -55,14 +52,14 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.post("/api/login", { email, password });
-    
+
       if (res.status === 201) {
         toast.success("Login successful!");
         setTimeout(() => redirect("/"), 1000);
       } else {
         toast.error(res.data.message);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error("Something went wrong!");
       console.error(error);
     } finally {
@@ -151,7 +148,6 @@ export default function Login() {
               {loading ? "Signing in..." : "Login"}
             </button>
           ) : (
-
             <button
               onClick={handleForgetPassword}
               disabled={loading || timer > 0}
@@ -162,8 +158,8 @@ export default function Login() {
               {loading
                 ? "Sending email..."
                 : timer > 0
-                ? `Sent (${timer}s)`
-                : "Send"}
+                  ? `Sent (${timer}s)`
+                  : "Send"}
             </button>
           )}
         </div>
