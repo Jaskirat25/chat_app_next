@@ -1,38 +1,43 @@
 import bcrypt from "bcryptjs";
-import prisma  from "@/lib/prisma";
+import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
-    console.log('hi')
+    console.log("hi");
     const { email, password } = await request.json();
     if (!password) {
       throw new Error("password is required");
     }
-    console.log(password)
+    console.log(password);
     const user = await prisma.user.findFirst({
       where: {
         email: email,
       },
     });
-    console.log(user)
+    console.log(user);
     if (!user) {
       return NextResponse.json({ message: "Need to register first!!" });
     }
-    
-  
+
     const pass = await bcrypt.compare(password, user.password);
     if (!pass) {
       return NextResponse.json({ message: "wrong password" });
     }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastSeen: new Date() },
+    });
+
     const token = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.NEXT_PUBLIC_JWT_SECRET!
+      process.env.NEXT_PUBLIC_JWT_SECRET!,
     );
 
     const response = NextResponse.json(
       { message: "User Logged in", user: { id: user.id, email: user.email } },
-      { status: 201 }
+      { status: 201 },
     );
 
     response.cookies.set({

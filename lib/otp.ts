@@ -3,6 +3,7 @@
 
 import emailjs from "emailjs-com";
 import redis from "./redis";
+import { log } from "console";
 
 export async function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -20,7 +21,7 @@ export async function sendOtp(email: string) {
     );
 
     if (response.status === 200) {
-      console.log("Email sent successfully");
+     
       return { success: true, otp };
     } else {
       console.log("Response:", response);
@@ -34,7 +35,8 @@ export async function sendOtp(email: string) {
 export async function changePassword(email:string){
   try{
     const token=await generateOtp();
-    await redis.set(token,email);
+    console.log(token)
+    await redis.set(token,email);//redis error
    const response = await emailjs.send(
       process.env.NEXT_PUBLIC_SERVICE_ID!,
       process.env.NEXT_PUBLIC_PASSWORD_TEMPLATE_ID!,
