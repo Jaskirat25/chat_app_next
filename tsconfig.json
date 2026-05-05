@@ -7,22 +7,34 @@
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
+
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+
     "plugins": [
       {
         "name": "next"
       }
     ],
+
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*", "./*"]
-    }
+    },
+
+    "ignoreDeprecations": "6.0"
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "server/socket/index.ts", "server/socket/events.ts", "prisma.config.ts"],
+
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }
