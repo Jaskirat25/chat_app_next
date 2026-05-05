@@ -48,10 +48,10 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState("");
-  const [socketConnected, setSocketConnected] = useState(false);
+  // const [socketConnected, setSocketConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingFrom, setTypingFrom] = useState<string | null>(null);
-  const [lastReadByReceiver, setLastReadByReceiver] = useState(false);
+  // const [lastReadByReceiver, setLastReadByReceiver] = useState(false);
   const [messageStatuses, setMessageStatuses] = useState<
     Record<string, "sent" | "delivered" | "read">
   >({});
@@ -61,6 +61,9 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
+
+  
+
 
   const fetchFriends = async () => {
     const token = Cookies.get("auth-token");
@@ -191,14 +194,14 @@ export default function Home() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("connect", () => {
-      console.log("Socket connected on frontend");
-      setSocketConnected(true);
-    });
+    // socket.on("connect", () => {
+    //   console.log("Socket connected on frontend");
+    //   setSocketConnected(true);
+    // });
 
-    socket.on("disconnect", () => {
-      setSocketConnected(false);
-    });
+    // socket.on("disconnect", () => {
+    //   setSocketConnected(false);
+    // });
 
     socket.on("presence-init", (online: string[]) => {
       setOnlineUsers(online);
@@ -210,15 +213,15 @@ export default function Home() {
       fetchFriends();
     });
 
-    const handleReceive = (msg: { from: string; [key: string]: unknown }) => {
-      if (selectedUser?.id === msg.from) {
+    const handleReceive = (msg: Message) => {
+      if (selectedUser?.id === msg.senderId) {
         setMessages((prev) => [...prev, msg]);
-        setUnreadCounts((prev) => ({ ...prev, [msg.from]: 0 }));
-        socket.emit("message-read", { receiverId: msg.from });
+        setUnreadCounts((prev) => ({ ...prev, [msg.senderId]: 0 }));
+        socket.emit("message-read", { receiverId: msg.senderId });
       } else {
         setUnreadCounts((prev) => ({
           ...prev,
-          [msg.from]: (prev[msg.from] ?? 0) + 1,
+          [msg.senderId]: (prev[msg.senderId] ?? 0) + 1,
         }));
       }
     };
@@ -237,7 +240,7 @@ export default function Home() {
     });
 
     socket.on("message-delivered", ({ messageId }) => {
-      setLastReadByReceiver(false);
+      // setLastReadByReceiver(false);
       setMessageStatuses((prev) => ({
         ...prev,
         [messageId]: "delivered",
@@ -246,7 +249,7 @@ export default function Home() {
 
     socket.on("message-read", ({ from }: { from: string }) => {
       if (selectedUser?.id !== from) return;
-      setLastReadByReceiver(true);
+      // setLastReadByReceiver(true);
       setMessageStatuses((prev) => {
         const next = { ...prev };
         messagesRef.current.forEach((message) => {
@@ -275,7 +278,7 @@ export default function Home() {
     const fetchChats = async () => {
       setMessages([]);
       setTypingFrom(null);
-      setLastReadByReceiver(false);
+      // setLastReadByReceiver(false);
 
       try {
         const idRes = await api.get(
@@ -308,7 +311,7 @@ export default function Home() {
 
     const currentInput = input;
     setInput("");
-    setLastReadByReceiver(false);
+    // setLastReadByReceiver(false);
 
     try {
       const messageData = {

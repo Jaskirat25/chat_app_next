@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import api from "../../../lib/axios";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 import { sendOtp } from "../../../lib/otp";

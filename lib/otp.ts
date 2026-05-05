@@ -3,7 +3,6 @@
 
 import emailjs from "emailjs-com";
 import redis from "./redis";
-import { log } from "console";
 
 export async function generateOtp() {
   return Math.floor(100000 + Math.random() * 900000).toString();
