@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-import { sendOtp } from "../../../lib/otp";
-import redis from "../../../lib/redis";
+import { saveOtpData, sendOtp } from "../../../lib/otp";
 import { isValidEmail } from "../../../lib/email-check";
 import Hash from "../../../lib/hash";
 
@@ -36,9 +35,26 @@ export default function Register() {
 
       const hashedPassword = await Hash(password);
       const otp = await sendOtp(email);
-      const data = { username, email, password: hashedPassword, otp };
 
-      await redis.set(`otp${email}`, data);
+      if (!otp.success) {
+        toast.error(otp.message || "Failed to send OTP.");
+        setLoading(false);
+        return;
+      }
+
+      const saveResult = await saveOtpData({
+        username,
+        email,
+        password: hashedPassword,
+        otp,
+      });
+
+      if (!saveResult.success) {
+        toast.error(saveResult.message || "Failed to save OTP data.");
+        setLoading(false);
+        return;
+      }
+
       const query = encodeURIComponent(email);
       toast.success("OTP sent to your email!");
       setTimeout(
