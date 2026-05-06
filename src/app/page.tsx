@@ -48,7 +48,7 @@ export default function Home() {
   const [userId, setUserId] = useState("");
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState("");
-  // const [socketConnected, setSocketConnected] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [typingFrom, setTypingFrom] = useState<string | null>(null);
   // const [lastReadByReceiver, setLastReadByReceiver] = useState(false);
@@ -61,9 +61,6 @@ export default function Home() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
-
-  
-
 
   const fetchFriends = async () => {
     const token = Cookies.get("auth-token");
@@ -180,8 +177,27 @@ export default function Home() {
 
   useEffect(() => {
     if (!userId) return;
-    const newSocket = io("http://localhost:3001", { auth: { token: userId } });
+    const newSocket = io("https://chat-app-server-ah27.onrender.com", {
+      auth: { token: userId },
+      autoConnect: true,
+    });
     setSocket(newSocket);
+
+    newSocket.on("connect", () => {
+      console.log("Socket connected on frontend");
+      setSocketConnected(true);
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("Socket disconnected");
+      setSocketConnected(false);
+    });
+
+    newSocket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error);
+      setSocketConnected(false);
+    });
+
     return () => {
       newSocket.disconnect();
     };
@@ -204,13 +220,13 @@ export default function Home() {
     // });
 
     socket.on("presence-init", (online: string[]) => {
+      console.log("Received presence-init:", online);
       setOnlineUsers(online);
-      fetchFriends();
     });
 
     socket.on("presence-update", (online: string[]) => {
+      console.log("Received presence-update:", online);
       setOnlineUsers(online);
-      fetchFriends();
     });
 
     const handleReceive = (msg: Message) => {
