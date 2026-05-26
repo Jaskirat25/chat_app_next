@@ -7,6 +7,6 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts"
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: env.optional("DATABASE_URL") || "mysql://user:password@localhost:3306/chat_app",
   },
 });
