@@ -1,10 +1,20 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Send, ArrowLeft, Trash2, UserMinus, Search, X, Paperclip, Reply } from "lucide-react";
+import {
+  Send,
+  ArrowLeft,
+  Trash2,
+  UserMinus,
+  Search,
+  X,
+  Paperclip,
+  Reply,
+} from "lucide-react";
 import Image from "next/image";
 import { User, Message } from "@/types/chat";
 import { MessageBubble } from "./MessageBubble";
+import { MessageSkeleton } from "./MessageSkeleton";
 import { TypingIndicator } from "./TypingIndicator";
 
 interface ChatAreaProps {
@@ -16,11 +26,16 @@ interface ChatAreaProps {
   messageStatuses: Record<string, "sent" | "delivered" | "read">;
   input: string;
   onInputChange: (val: string) => void;
-  onSend: (content: string, replyTo?: Message | null, file?: File | null) => void;
+  onSend: (
+    content: string,
+    replyTo?: Message | null,
+    file?: File | null,
+  ) => void;
   onDeleteChat: () => void;
   onUnfriend: () => void;
   onBack: () => void;
   isHiddenOnMobile?: boolean;
+  isLoading?: boolean;
   onReact: (messageId: string, emoji: string) => void;
   onEdit: (messageId: string, newContent: string) => void;
   onDelete: (messageId: string) => void;
@@ -43,6 +58,7 @@ export function ChatArea({
   onUnfriend,
   onBack,
   isHiddenOnMobile = false,
+  isLoading = false,
   onReact,
   onEdit,
   onDelete,
@@ -87,7 +103,7 @@ export function ChatArea({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileSelection(e.dataTransfer.files[0]);
     }
@@ -127,7 +143,7 @@ export function ChatArea({
   // Filter messages based on search query
   const filteredMessages = searchQuery.trim()
     ? messages.filter((msg) =>
-        msg.content.toLowerCase().includes(searchQuery.toLowerCase())
+        msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : messages;
 
@@ -139,7 +155,11 @@ export function ChatArea({
         }`}
       >
         <div className="w-24 h-24 mb-6 opacity-20 bg-discord-text-muted rounded-full flex items-center justify-center">
-          <svg className="w-12 h-12 text-discord-bg" fill="currentColor" viewBox="0 0 24 24">
+          <svg
+            className="w-12 h-12 text-discord-bg"
+            fill="currentColor"
+            viewBox="0 0 24 24"
+          >
             <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
           </svg>
         </div>
@@ -165,8 +185,12 @@ export function ChatArea({
           <div className="p-4 bg-discord-brand/10 rounded-full text-discord-brand animate-pulse mb-3">
             <Paperclip size={48} />
           </div>
-          <p className="text-xl font-bold text-discord-text-bright">Drop files to upload</p>
-          <p className="text-sm text-discord-text-muted mt-1">Images or attachments are supported</p>
+          <p className="text-xl font-bold text-discord-text-bright">
+            Drop files to upload
+          </p>
+          <p className="text-sm text-discord-text-muted mt-1">
+            Images or attachments are supported
+          </p>
         </div>
       )}
 
@@ -242,7 +266,9 @@ export function ChatArea({
               if (showSearch) setSearchQuery("");
             }}
             className={`p-2 rounded-md transition-colors ${
-              showSearch ? "bg-discord-active text-discord-text-bright" : "text-discord-text-muted hover:text-discord-text-bright hover:bg-discord-hover"
+              showSearch
+                ? "bg-discord-active text-discord-text-bright"
+                : "text-discord-text-muted hover:text-discord-text-bright hover:bg-discord-hover"
             }`}
             title="Search Messages"
           >
@@ -253,27 +279,40 @@ export function ChatArea({
             className="p-2 text-discord-text-muted hover:text-discord-danger hover:bg-discord-hover rounded-md transition-colors group"
             title="Unfriend"
           >
-            <UserMinus size={18} className="group-hover:scale-105 transition-transform" />
+            <UserMinus
+              size={18}
+              className="group-hover:scale-105 transition-transform"
+            />
           </button>
           <button
             onClick={onDeleteChat}
             className="p-2 text-discord-text-muted hover:text-discord-danger hover:bg-discord-hover rounded-md transition-colors group"
             title="Delete Chat"
           >
-            <Trash2 size={18} className="group-hover:scale-105 transition-transform" />
+            <Trash2
+              size={18}
+              className="group-hover:scale-105 transition-transform"
+            />
           </button>
         </div>
       </div>
 
       {/* Messages Wrapper */}
       <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-1">
-        {filteredMessages.length === 0 ? (
+        {isLoading ? (
+          // Render 6 alternating skeletons
+          Array.from({ length: 6 }).map((_, i) => (
+            <MessageSkeleton key={i} align={i % 2 === 0 ? "left" : "right"} />
+          ))
+        ) : filteredMessages.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center mt-10 text-center">
             <div className="w-20 h-20 bg-discord-sidebar rounded-full flex items-center justify-center mb-4">
               <span className="text-3xl">👋</span>
             </div>
             <h3 className="text-xl font-bold text-discord-text-bright mb-2">
-              {searchQuery ? "No matching messages" : `Say hi to ${selectedUser.username}!`}
+              {searchQuery
+                ? "No matching messages"
+                : `Say hi to ${selectedUser.username}!`}
             </h3>
             <p className="text-discord-text-muted text-sm max-w-xs px-4">
               {searchQuery
@@ -289,7 +328,9 @@ export function ChatArea({
               isOwn={message.senderId === userId}
               status={messageStatuses[message.id]}
               userId={userId}
-              senderName={message.senderId === userId ? "You" : selectedUser.username}
+              senderName={
+                message.senderId === userId ? "You" : selectedUser.username
+              }
               onReact={onReact}
               onReply={onReply}
               onEdit={onEdit}
@@ -312,8 +353,16 @@ export function ChatArea({
           <div className="bg-discord-sidebar border-l-4 border-discord-brand px-4 py-2 mb-2 rounded-r-md flex items-center justify-between text-xs animate-slideDown">
             <div className="flex items-center gap-1.5 text-discord-text-muted truncate">
               <Reply size={12} className="shrink-0" />
-              <span>Replying to <span className="font-semibold text-discord-text-bright">@{replyTo.senderId === userId ? "You" : selectedUser.username}</span>:</span>
-              <span className="italic truncate max-w-[400px]">"{replyTo.content}"</span>
+              <span>
+                Replying to{" "}
+                <span className="font-semibold text-discord-text-bright">
+                  @{replyTo.senderId === userId ? "You" : selectedUser.username}
+                </span>
+                :
+              </span>
+              <span className="italic truncate max-w-[400px]">
+                "{replyTo.content}"
+              </span>
             </div>
             <button
               onClick={onCancelReply}
@@ -330,7 +379,11 @@ export function ChatArea({
             <div className="flex items-center gap-3 min-w-0">
               {filePreview ? (
                 <div className="relative w-10 h-10 rounded overflow-hidden bg-black/10 shrink-0">
-                  <img src={filePreview} alt="upload preview" className="w-full h-full object-cover" />
+                  <img
+                    src={filePreview}
+                    alt="upload preview"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
               ) : (
                 <div className="w-10 h-10 rounded bg-discord-brand/10 text-discord-brand flex items-center justify-center shrink-0">
@@ -338,7 +391,9 @@ export function ChatArea({
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-semibold text-discord-text-bright truncate">{selectedFile.name}</p>
+                <p className="font-semibold text-discord-text-bright truncate">
+                  {selectedFile.name}
+                </p>
                 <p className="text-[10px] text-discord-text-muted">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                 </p>
@@ -396,7 +451,10 @@ export function ChatArea({
                 : "bg-discord-dark text-discord-text-muted cursor-not-allowed"
             }`}
           >
-            <Send size={16} className={input.trim() || selectedFile ? "ml-0.5" : ""} />
+            <Send
+              size={16}
+              className={input.trim() || selectedFile ? "ml-0.5" : ""}
+            />
           </button>
         </div>
       </div>

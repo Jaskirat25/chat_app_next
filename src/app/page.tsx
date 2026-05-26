@@ -32,27 +32,28 @@ export default function Home() {
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+  const [isLoadingChats, setIsLoadingChats] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
 
   const fetchFriends = async () => {
-    const token = Cookies.get("auth-token");
-    if (!token) return;
-
+    setIsLoadingFriends(true);
     try {
+      const token = Cookies.get("auth-token");
+      if (!token) return;
       const decoded = jwtDecode(token) as { id: string };
       setUserId(decoded.id);
 
-      const response = await api.post("/api/Users/fetchUsers", {
-        user_id: decoded.id,
-      });
-
+      const response = await api.post("/api/Users/fetchUsers", { user_id: decoded.id });
       if (response.data) {
         setUserFriends(response.data.data || response.data);
       }
     } catch (error) {
       console.error("Error fetching friends:", error);
+    } finally {
+      setIsLoadingFriends(false);
     }
   };
 
@@ -266,6 +267,7 @@ export default function Home() {
   useEffect(() => {
     if (!selectedUser) return;
     const fetchChats = async () => {
+      setIsLoadingChats(true);
       setMessages([]);
       setTypingFrom(null);
       // setLastReadByReceiver(false);
@@ -281,6 +283,8 @@ export default function Home() {
         if (chats.data?.messages) setMessages(chats.data.messages);
       } catch (error) {
         console.error("Error fetching chats:", error);
+      } finally {
+        setIsLoadingChats(false);
       }
     };
     fetchChats();
@@ -377,52 +381,53 @@ export default function Home() {
 
   return (
     <div className="flex h-[100dvh] w-full bg-discord-bg overflow-hidden text-discord-text">
-      <Sidebar
-        searchText={searchText}
-        setSearchText={setSearchText}
-        isSearching={isSearching}
-        searchError={searchError}
-        searchResults={searchResults}
-        userFriends={userFriends}
-        selectedUser={selectedUser}
-        onlineUsers={onlineUsers}
-        unreadCounts={unreadCounts}
-        onSearch={handleSearch}
-        onClearSearch={() => {
-          setSearchText("");
-          setSearchResults([]);
-        }}
-        onSelectUser={handleSelectUser}
-        onAddFriend={handleAddFriend}
-        isHiddenOnMobile={!!selectedUser}
-      />
-      
-      <ChatArea
-        selectedUser={selectedUser}
-        isOnline={selectedUser ? isUserOnline(selectedUser.id) : false}
-        messages={messages}
-        userId={userId}
-        typingFrom={typingFrom}
-        messageStatuses={messageStatuses}
-        input={input}
-        onInputChange={(val) => {
-          setInput(val);
-          if (selectedUser && socket) {
-            socket.emit("typing", { receiverId: selectedUser.id });
-          }
-        }}
-        onSend={handleSend}
-        onDeleteChat={handleDeleteChat}
-        onUnfriend={() => selectedUser && handleUnfriend(selectedUser.id)}
-        onBack={() => setSelectedUser(null)}
-        isHiddenOnMobile={!selectedUser}
-        onReact={handleReact}
-        onEdit={handleEdit}
-        onDelete={handleDeleteMessage}
-        replyTo={replyTo}
-        onCancelReply={() => setReplyTo(null)}
-        onReply={setReplyTo}
-      />
+        <Sidebar
+          searchText={searchText}
+          setSearchText={setSearchText}
+          isSearching={isSearching}
+          searchError={searchError}
+          searchResults={searchResults}
+          userFriends={userFriends}
+          selectedUser={selectedUser}
+          onlineUsers={onlineUsers}
+          unreadCounts={unreadCounts}
+          onSearch={handleSearch}
+          onClearSearch={() => {
+            setSearchText("");
+            setSearchResults([]);
+          }}
+          onSelectUser={handleSelectUser}
+          onAddFriend={handleAddFriend}
+          isHiddenOnMobile={!!selectedUser}
+          isLoading={isLoadingFriends}
+        />
+            <ChatArea
+          selectedUser={selectedUser}
+          isOnline={selectedUser ? isUserOnline(selectedUser.id) : false}
+          messages={messages}
+          userId={userId}
+          typingFrom={typingFrom}
+          messageStatuses={messageStatuses}
+          input={input}
+          onInputChange={(val) => {
+            setInput(val);
+            if (selectedUser && socket) {
+              socket.emit("typing", { receiverId: selectedUser.id });
+            }
+          }}
+          onSend={handleSend}
+          onDeleteChat={handleDeleteChat}
+          onUnfriend={() => selectedUser && handleUnfriend(selectedUser.id)}
+          onBack={() => setSelectedUser(null)}
+          isHiddenOnMobile={!selectedUser}
+          onReact={handleReact}
+          onEdit={handleEdit}
+          onDelete={handleDeleteMessage}
+          replyTo={replyTo}
+          onCancelReply={() => setReplyTo(null)}
+          onReply={setReplyTo}
+          isLoading={isLoadingChats}
+        />
     </div>
   );
 }

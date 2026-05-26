@@ -1,8 +1,9 @@
-import { Search, X } from "lucide-react";
+import { SkeletonLoader } from "./SkeletonLoader";
 import CustomDrawer from "./CustomDrawer";
 import { UserListItem } from "./UserListItem";
 import { User, SearchUser } from "@/types/chat";
 import { useState } from "react";
+import { Search, X } from "lucide-react";
 
 interface SidebarProps {
   searchText: string;
@@ -19,6 +20,7 @@ interface SidebarProps {
   onSelectUser: (user: User) => void;
   onAddFriend: (id: string) => void;
   isHiddenOnMobile?: boolean;
+  isLoading?: boolean;
 }
 
 export function Sidebar({
@@ -36,6 +38,7 @@ export function Sidebar({
   onSelectUser,
   onAddFriend,
   isHiddenOnMobile = false,
+  isLoading = false,
 }: SidebarProps) {
   const [filterUnread, setFilterUnread] = useState(false);
   const isUserOnline = (id: string) => onlineUsers.includes(id);
@@ -70,7 +73,10 @@ export function Sidebar({
               className="flex-1 bg-transparent outline-none text-sm text-discord-text placeholder-discord-text-muted"
             />
             {searchText && (
-              <button onClick={onClearSearch} className="text-discord-text-muted hover:text-discord-text-bright">
+              <button
+                onClick={onClearSearch}
+                className="text-discord-text-muted hover:text-discord-text-bright"
+              >
                 <X size={16} />
               </button>
             )}
@@ -86,7 +92,9 @@ export function Sidebar({
               Search Results
             </h3>
             {isSearching && (
-              <p className="text-sm text-discord-text-muted px-2">Looking for users...</p>
+              <p className="text-sm text-discord-text-muted px-2">
+                Looking for users...
+              </p>
             )}
             {searchError && (
               <p className="text-sm text-discord-danger px-2">{searchError}</p>
@@ -128,9 +136,23 @@ export function Sidebar({
                 {filterUnread ? "Unread" : "All"}
               </button>
             </div>
-            {displayedFriends.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <SkeletonLoader
+                    key={i}
+                    type="avatar"
+                    width="w-8"
+                    height="h-8"
+                    className="animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : displayedFriends.length === 0 ? (
               <p className="text-sm text-discord-text-muted px-2 mt-4 text-center">
-                {filterUnread ? "No unread messages." : "No friends yet. Search to add some!"}
+                {filterUnread
+                  ? "No unread messages."
+                  : "No friends yet. Search to add some!"}
               </p>
             ) : (
               <div className="flex flex-col gap-1">
@@ -142,6 +164,8 @@ export function Sidebar({
                     isOnline={isUserOnline(friend.id)}
                     unreadCount={unreadCounts[friend.id]}
                     onSelect={onSelectUser}
+                    onAddFriend={onAddFriend}
+                    isSearchMode={false}
                   />
                 ))}
               </div>
