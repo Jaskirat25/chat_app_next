@@ -8,7 +8,7 @@ import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import Image from "next/image";
 import { io, Socket } from "socket.io-client";
-import TemporaryDrawer from "@/components/Drawer";
+import CustomDrawer from "@/components/CustomDrawer";
 // --- INTERFACES ---
 interface User {
   id: string;
@@ -384,9 +384,8 @@ export default function Home() {
           <div className="col-span-1 p-4 h-full flex flex-col overflow-hidden">
             <div className="flex items-center gap-3 shrink-0">
               {/* User Profile Icon/Avatar */}
-              <div className="bg-gray-300 p-2 rounded-full cursor-pointer hover:bg-gray-200 transition-colors">
-                <TemporaryDrawer />
-              </div>
+              <CustomDrawer />
+
 
               <div className="flex flex-col gap-1 flex-1">
                 <div className="rounded-md h-10 bg-gray-100 flex items-center px-3 gap-2 shadow-sm">
