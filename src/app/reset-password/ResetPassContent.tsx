@@ -58,74 +58,88 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="flex justify-center items-center w-full bg-gradient-to-br from-teal-500 via-green-300 to-teal-200 h-screen">
-      <div className="w-full max-w-md mx-auto p-6 flex flex-col gap-3 border border-gray-200 bg-blue-100 rounded-lg shadow-sm">
-        <h2 className="text-2xl font-semibold mb-2">Reset password</h2>
+    <div className="flex min-h-screen items-center justify-center bg-app-bg relative overflow-hidden p-4">
+      <div className="relative z-10 w-full max-w-md bg-app-sidebar rounded-2xl shadow-2xl border border-app-dark p-8 sm:p-10">
+        <div className="text-center mb-6">
+          <h2 className="text-3xl font-bold text-app-text-bright mb-2">Reset Password</h2>
+          {loading ? (
+            <p className="text-app-text-muted text-sm">Checking token...</p>
+          ) : !email ? (
+            <p className="text-app-text-muted text-sm">Enter a new password to reset your account.</p>
+          ) : (
+            <p className="text-app-text-muted text-sm">Resetting password for <strong className="text-app-text-bright">{email}</strong></p>
+          )}
+        </div>
 
-        {loading ? (
-          <p>Checking token...</p>
-        ) : !email ? (
-          <p className="text-sm text-gray-600">Enter a new password to reset your account.</p>
-        ) : (
-          <p className="text-sm text-gray-600">Resetting password for <strong>{email}</strong></p>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-          <div className="relative">
-            <input
-              name="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              type={seePassword ? "text" : "password"}
-              required
-              minLength={6}
-              placeholder="New password"
-              className="block w-full rounded-md border border-gray-300 shadow-sm p-2"
-            />
-            <button
-              type="button"
-              onClick={() => setSeePassword((p) => !p)}
-              className="absolute h-full flex items-center justify-center right-2 top-0"
-            >
-              {seePassword ? <EyeClosed /> : <Eye />}
-            </button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <div>
+            <label className="text-sm font-bold text-app-text-muted uppercase tracking-wide mb-2 block">
+              New Password
+            </label>
+            <div className="relative">
+              <input
+                name="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                type={seePassword ? "text" : "password"}
+                required
+                minLength={6}
+                placeholder="New password"
+                className="w-full bg-app-input text-app-text-bright border border-transparent rounded-lg py-3 px-4 focus:border-app-brand focus:ring-1 focus:ring-app-brand outline-none transition"
+              />
+              <button
+                type="button"
+                onClick={() => setSeePassword((p) => !p)}
+                className="absolute h-full flex items-center justify-center right-3 top-0 text-app-text-muted hover:text-app-text-bright"
+              >
+                {seePassword ? <EyeClosed size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
-          <div className="relative">
-            <input
-              name="confirm"
-              value={confirm}
-              onChange={(e) => setConfirmPass(e.target.value)}
-              type={seeConfirm ? "text" : "password"}
-              minLength={6}
-              placeholder="Confirm password"
-              className="block w-full rounded-md border border-gray-300 shadow-sm p-2"
-            />
-            <button
-              type="button"
-              onClick={() => setConfirm((p) => !p)}
-              className="absolute h-full flex items-center justify-center right-2 top-0"
-            >
-              {seeConfirm ? <EyeClosed /> : <Eye />}
-            </button>
+          <div>
+            <label className="text-sm font-bold text-app-text-muted uppercase tracking-wide mb-2 block">
+              Confirm Password
+            </label>
+            <div className="relative">
+              <input
+                name="confirm"
+                value={confirm}
+                onChange={(e) => setConfirmPass(e.target.value)}
+                type={seeConfirm ? "text" : "password"}
+                minLength={6}
+                placeholder="Confirm password"
+                className="w-full bg-app-input text-app-text-bright border border-transparent rounded-lg py-3 px-4 focus:border-app-brand focus:ring-1 focus:ring-app-brand outline-none transition"
+              />
+              <button
+                type="button"
+                onClick={() => setConfirm((p) => !p)}
+                className="absolute h-full flex items-center justify-center right-3 top-0 text-app-text-muted hover:text-app-text-bright"
+              >
+                {seeConfirm ? <EyeClosed size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-60"
-            >
-              {loading ? "Processing..." : "Reset password"}
-            </button>
-            <a href="/login" className="text-blue-600 hover:font-medium text-sm">
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-app-brand hover:bg-app-brand-hover text-white font-semibold py-3 rounded-lg shadow-md transition-all mt-4 ${
+              loading ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
+            {loading ? "Processing..." : "Reset Password"}
+          </button>
+
+          <div className="text-center mt-2">
+            <a href="/login" className="text-app-brand font-semibold hover:underline text-sm transition">
               Back to login
             </a>
           </div>
         </form>
 
         {!token && (
-          <p className="mt-2 text-sm text-red-600">Warning: token not found or expired.</p>
+          <p className="mt-4 text-center text-sm text-app-danger">Warning: token not found or expired.</p>
         )}
       </div>
     </div>

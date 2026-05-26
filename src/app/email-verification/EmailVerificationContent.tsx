@@ -57,20 +57,20 @@ export default function EmailVerificationContent() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-blue-300 to-blue-500">
-      <div className="w-full max-w-sm p-8 flex flex-col gap-6 justify-center items-center bg-white rounded-xl shadow-lg">
-        <h1 className="font-bold text-3xl text-gray-800">
-          Account Verification
-        </h1>
-
-        <p className="text-gray-600 text-sm">
-          Enter the 6-digit code sent to your email
-        </p>
+    <div className="flex min-h-screen items-center justify-center bg-app-bg relative overflow-hidden p-4">
+      <div className="relative z-10 w-full max-w-md bg-app-sidebar rounded-2xl shadow-2xl border border-app-dark p-8 sm:p-10 flex flex-col items-center">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-app-text-bright mb-2">
+            Verify Email
+          </h2>
+          <p className="text-app-text-muted text-sm">
+            Enter the 6-digit code sent to your email
+          </p>
+        </div>
 
         <OTPInput
-          inputStyle="text-black border-2 border-gray-300 rounded-lg w-12 h-12"
-          containerStyle="text-3xl p-2 gap-2 flex justify-center"
-          placeholder="000000"
+          inputStyle="text-app-text-bright bg-app-input border border-transparent focus:border-app-brand focus:ring-1 focus:ring-app-brand outline-none rounded-lg w-12 h-12 sm:w-14 sm:h-14 mx-1 transition-all"
+          containerStyle="flex justify-center mb-6 w-full"
           value={otp}
           onChange={setOtp}
           numInputs={6}
@@ -80,18 +80,25 @@ export default function EmailVerificationContent() {
 
         <button
           onClick={handleVerify}
-          disabled={loading}
-          className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 rounded-lg p-3 text-white font-semibold transition duration-200"
+          disabled={loading || otp.length < 6}
+          className={`w-full bg-app-brand hover:bg-app-brand-hover text-white font-semibold py-3 rounded-lg shadow-md transition-all ${
+            loading || otp.length < 6 ? "opacity-70 cursor-not-allowed" : ""
+          }`}
         >
           {loading ? "Verifying..." : "Verify Code"}
         </button>
 
-        <button
-          onClick={handleResend}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium transition duration-200"
-        >
-          Resend Code
-        </button>
+        <div className="text-center mt-6">
+          <p className="text-app-text-muted text-sm">
+            Didn't receive code?{" "}
+            <button
+              onClick={handleResend}
+              className="text-app-brand font-semibold hover:underline transition"
+            >
+              Resend
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

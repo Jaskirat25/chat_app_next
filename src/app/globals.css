@@ -1,28 +1,91 @@
 @import "tailwindcss";
 
-/* 
-@tailwind utilities;
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-brand: #5865F2;
+  --color-brand-hover: #4752C4;
+  
+  /* Light mode colors */
+  --color-bg: #FFFFFF;
+  --color-sidebar: #F2F3F5;
+  --color-dark: #E3E5E8;
+  --color-hover: #E3E5E8;
+  --color-active: #D4D7DC;
+  --color-input: #EBEDF0;
+  --color-text: #2E3338;
+  --color-text-muted: #5C6E79;
+  --color-text-bright: #060607;
+  --color-success: #23A559;
+  --color-danger: #DA373C;
+}
+
+.dark, :root:not(.light) {
+  /* Dark mode colors (Discord standard) */
+  --color-bg: #313338;
+  --color-sidebar: #2B2D31;
+  --color-dark: #1E1F22;
+  --color-hover: #2E3035;
+  --color-active: #3F4147;
+  --color-input: #383A40;
+  --color-text: #DBDEE1;
+  --color-text-muted: #949BA4;
+  --color-text-bright: #F2F3F5;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-discord-brand: var(--color-brand);
+  --color-discord-brand-hover: var(--color-brand-hover);
+  
+  --color-discord-bg: var(--color-bg);
+  --color-discord-sidebar: var(--color-sidebar);
+  --color-discord-dark: var(--color-dark);
+  
+  --color-discord-hover: var(--color-hover);
+  --color-discord-active: var(--color-active);
+  --color-discord-input: var(--color-input);
+  
+  --color-discord-text: var(--color-text);
+  --color-discord-text-muted: var(--color-text-muted);
+  --color-discord-text-bright: var(--color-text-bright);
+  
+  --color-discord-success: var(--color-success);
+  --color-discord-danger: var(--color-danger);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-app-brand: var(--color-brand);
+  --color-app-brand-hover: var(--color-brand-hover);
+  --color-app-bg: var(--color-bg);
+  --color-app-sidebar: var(--color-sidebar);
+  --color-app-dark: var(--color-dark);
+  --color-app-hover: var(--color-hover);
+  --color-app-active: var(--color-active);
+  --color-app-input: var(--color-input);
+  --color-app-text: var(--color-text);
+  --color-app-text-muted: var(--color-text-muted);
+  --color-app-text-bright: var(--color-text-bright);
+  --color-app-success: var(--color-success);
+  --color-app-danger: var(--color-danger);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-} */
+  @apply bg-discord-bg text-discord-text transition-colors duration-200;
+  font-family: var(--font-geist-sans), sans-serif;
+  /* Hide scrollbar for cleaner look */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-discord-dark rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-discord-active;
+  }
+}
+
+/* Base resets */
+* {
+  border-color: var(--color-dark);
+}
+

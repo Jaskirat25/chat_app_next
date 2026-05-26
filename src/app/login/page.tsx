@@ -68,30 +68,28 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 relative overflow-hidden">
+    <div className="flex min-h-screen items-center justify-center bg-app-bg relative overflow-hidden p-4">
       <Toaster />
 
-      {/* Background Circle */}
-      <div className="absolute top-[-150px] left-[-200px] w-[1300px] h-[1100px] bg-teal-400 rounded-full"></div>
-
-      <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-lg p-10">
+      <div className="relative z-10 w-full max-w-md bg-app-sidebar rounded-2xl shadow-2xl border border-app-dark p-8 sm:p-10">
         {!forgotPassword && (
-          <button className="flex" onClick={() => setForgot(true)}>
-            <img
-              className="w-20 h-10 -ml-7 mb-1.5 -mt-5"
-              src="/arrow-left.svg"
-              alt=""
-            />
+          <button className="flex items-center text-app-text-muted hover:text-app-text transition-colors mb-6" onClick={() => setForgot(true)}>
+            <i className="fa-solid fa-arrow-left mr-2"></i> Back
           </button>
         )}
 
-        <h2 className="text-3xl font-bold text-gray-800 mb-6">
-          {forgotPassword ? "Sign in" : "Verify email"}
-        </h2>
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-app-text-bright mb-2">
+            {forgotPassword ? "Welcome back!" : "Verify email"}
+          </h2>
+          <p className="text-app-text-muted">
+            {forgotPassword ? "We're so excited to see you again!" : "Check your email for the recovery link"}
+          </p>
+        </div>
 
         <div className="space-y-5">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1 block">
+            <label className="text-sm font-bold text-app-text-muted uppercase tracking-wide mb-2 block">
               Email
             </label>
             <div className="relative">
@@ -99,17 +97,14 @@ export default function Login() {
                 type="email"
                 placeholder="e.g jas@gmail.com"
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg py-3 pl-3 focus:border-teal-500 focus:ring-1 focus:ring-teal-400 outline-none transition"
+                className="w-full bg-app-input text-app-text-bright border border-transparent rounded-lg py-3 px-4 focus:border-app-brand focus:ring-1 focus:ring-app-brand outline-none transition"
               />
-              <span className="absolute left-3 top-3.5 text-gray-400">
-                <i className="fa-regular fa-envelope"></i>
-              </span>
             </div>
           </div>
 
           {forgotPassword ? (
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-1 block">
+              <label className="text-sm font-bold text-app-text-muted uppercase tracking-wide mb-2 block">
                 Password
               </label>
               <div className="relative">
@@ -117,21 +112,18 @@ export default function Login() {
                   type="password"
                   placeholder="Enter your password"
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg py-3 px-4 pl-10 focus:border-teal-500 focus:ring-1 focus:ring-teal-400 outline-none transition"
+                  className="w-full bg-app-input text-app-text-bright border border-transparent rounded-lg py-3 px-4 focus:border-app-brand focus:ring-1 focus:ring-app-brand outline-none transition"
                 />
-                <span className="absolute left-3 top-3.5 text-gray-400">
-                  <i className="fa-solid fa-lock"></i>
-                </span>
               </div>
-              <div className="text-right mt-2">
+              <div className="text-left mt-2">
                 <button
                   onClick={() => {
                     setForgot(false);
                     setTimer(0);
                   }}
-                  className="text-sm text-teal-600 hover:text-teal-700 font-medium"
+                  className="text-sm text-app-brand hover:underline font-medium"
                 >
-                  Forgot Password?
+                  Forgot your password?
                 </button>
               </div>
             </div>
@@ -141,17 +133,17 @@ export default function Login() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 rounded-lg shadow-md transition-all ${
+              className={`w-full bg-app-brand hover:bg-app-brand-hover text-white font-semibold py-3 rounded-lg shadow-md transition-all mt-6 ${
                 loading ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >
-              {loading ? "Signing in..." : "Login"}
+              {loading ? "Signing in..." : "Log In"}
             </button>
           ) : (
             <button
               onClick={handleForgetPassword}
               disabled={loading || timer > 0}
-              className={`w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 rounded-lg shadow-md transition-all ${
+              className={`w-full bg-app-brand hover:bg-app-brand-hover text-white font-semibold py-3 rounded-lg shadow-md transition-all mt-6 ${
                 loading || timer > 0 ? "opacity-70 cursor-not-allowed" : ""
               }`}
             >
@@ -159,19 +151,19 @@ export default function Login() {
                 ? "Sending email..."
                 : timer > 0
                   ? `Sent (${timer}s)`
-                  : "Send"}
+                  : "Send Reset Link"}
             </button>
           )}
         </div>
 
-        <div className="text-center mt-6">
-          <p className="text-gray-600 text-sm">
-            Don’t have an account?{" "}
+        <div className="text-left mt-4">
+          <p className="text-app-text-muted text-sm">
+            Need an account?{" "}
             <button
               onClick={() => redirect("/register")}
-              className="text-teal-600 font-semibold hover:text-teal-700 transition"
+              className="text-app-brand font-semibold hover:underline transition"
             >
-              Sign up →
+              Register
             </button>
           </p>
         </div>
