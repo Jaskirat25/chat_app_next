@@ -1,28 +1,26 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { Menu, X, Sun, Moon, LogOut, User as UserIcon } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { LogOut, Menu, Moon, Sun, User as UserIcon, X } from "lucide-react";
 import Cookies from "js-cookie";
 import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@/context/theme-context";
 
-export default function CustomDrawer() {
+export default function CustomDrawer({
+  compact = false,
+}: {
+  compact?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">("dark");
-  const [userInfo, setUserInfo] = useState<{ username?: string; email?: string } | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    username?: string;
+    email?: string;
+  } | null>(null);
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
-    // Determine initial theme
-    const storedTheme = localStorage.getItem("app-theme") as "light" | "dark";
-    if (storedTheme) {
-      setTheme(storedTheme);
-      document.documentElement.className = storedTheme;
-    } else {
-      document.documentElement.className = "dark";
-    }
-
-    // Decode token for user details
     const token = Cookies.get("auth-token");
     if (token) {
       try {
@@ -34,12 +32,21 @@ export default function CustomDrawer() {
     }
   }, []);
 
-  const toggleTheme = () => {
-    const nextTheme = theme === "dark" ? "light" : "dark";
-    setTheme(nextTheme);
-    localStorage.setItem("app-theme", nextTheme);
-    document.documentElement.className = nextTheme;
-  };
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      window.addEventListener("keydown", handleEscape);
+    }
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen]);
 
   const handleLogout = () => {
     Cookies.remove("auth-token");
@@ -48,87 +55,109 @@ export default function CustomDrawer() {
 
   return (
     <>
-      {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="p-1.5 rounded-md hover:bg-app-hover text-app-text transition-colors flex items-center justify-center"
+        className={`flex items-center justify-center rounded-full border border-white/15 bg-white/8 text-white/78 transition-all duration-300 hover:bg-white/16 hover:text-white ${
+          compact ? "h-10 w-10" : "p-1.5"
+        }`}
         aria-label="Open navigation menu"
       >
         <Menu size={20} />
       </button>
 
-      {/* Drawer Overlay Backdrop */}
-      {isOpen && (
-        <div
-          onClick={() => setIsOpen(false)}
-          className="fixed inset-0 bg-black/50 z-50 transition-opacity duration-300 backdrop-blur-xs"
-        />
-      )}
-
-      {/* Drawer Side Panel */}
       <div
-        className={`fixed top-0 left-0 h-full w-[280px] sm:w-[320px] bg-app-sidebar border-r border-app-dark shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-0 z-40 transition-all duration-300 ${
+          isOpen
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden={!isOpen}
+      >
+        <button
+          type="button"
+          onClick={() => setIsOpen(false)}
+          className="absolute inset-0 bg-black/55 backdrop-blur-sm transition-opacity duration-300"
+          aria-label="Close navigation menu"
+        />
+      </div>
+
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation drawer"
+        className={`glass-panel fixed left-0 top-0 z-50 flex h-full w-full max-w-[320px] transform flex-col rounded-none border border-white/10 bg-white/10 p-0 shadow-2xl transition-all duration-300 ease-out sm:rounded-[28px] sm:left-4 sm:top-3 sm:h-[calc(100dvh-24px)] sm:w-[320px] ${
+          isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0"
         }`}
       >
-        {/* Header */}
-        <div className="p-4 border-b border-app-dark flex items-center justify-between">
-          <h2 className="text-lg font-bold text-app-text-bright">Menu</h2>
+        <div className="flex min-h-[72px] items-center justify-between border-b border-white/[0.08] px-4 py-4 backdrop-blur-xl">
+          <div>
+            <p className="text-xs uppercase tracking-[0.3em] text-white/50">
+              Header Menu
+            </p>
+            <h2 className="text-xl font-semibold text-white">Workspace</h2>
+          </div>
           <button
             onClick={() => setIsOpen(false)}
-            className="p-1 rounded-md text-app-text-muted hover:text-app-text-bright hover:bg-app-hover transition-colors"
+            className="rounded-full p-2 text-white/70 transition-colors duration-200 hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+            aria-label="Close drawer"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* User Info Card */}
-        <div className="p-5 border-b border-app-dark bg-app-bg/50 flex flex-col items-center text-center">
-          <div className="relative mb-3">
-            <div className="w-16 h-16 rounded-full bg-app-brand/20 border-2 border-app-brand flex items-center justify-center">
-              <UserIcon size={32} className="text-app-brand" />
+        <div className="border-b border-white/[0.08] p-5 text-center">
+          <div className="relative mx-auto mb-4 h-16 w-16 overflow-hidden rounded-full border border-white/15 bg-white/10 shadow-inner shadow-white/5">
+            <div className="flex h-full w-full items-center justify-center text-xl text-white/90">
+              <UserIcon size={30} />
             </div>
-            <span className="absolute bottom-0 right-0 w-4 h-4 bg-app-success border-2 border-app-sidebar rounded-full" />
+            <span className="absolute bottom-2 right-2 h-3.5 w-3.5 rounded-full border border-black/70 bg-[#4CD964] shadow-[0_0_12px_rgba(76,217,100,0.35)]" />
           </div>
-          <h3 className="font-semibold text-app-text-bright truncate max-w-full">
+          <p className="truncate text-base font-semibold text-white">
             {userInfo?.username || "Guest User"}
-          </h3>
-          <p className="text-xs text-app-text-muted truncate max-w-full mt-0.5">
-            {userInfo?.email || "No email associated"}
+          </p>
+          <p className="mt-1 truncate text-sm text-white/60">
+            {userInfo?.email || "guest@chatapp.com"}
           </p>
         </div>
 
-        {/* Action List */}
-        <div className="flex-1 p-3 flex flex-col gap-1 overflow-y-auto">
+        <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4">
           <button
             onClick={toggleTheme}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md hover:bg-app-hover text-app-text hover:text-app-text-bright transition-colors text-sm font-medium"
+            className="group flex w-full items-center justify-between rounded-3xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-medium text-white/80 transition duration-300 hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/20"
           >
-            {theme === "dark" ? (
-              <>
-                <Sun size={18} className="text-yellow-500" />
-                <span>Light Mode</span>
-              </>
-            ) : (
-              <>
-                <Moon size={18} className="text-indigo-400" />
-                <span>Dark Mode</span>
-              </>
-            )}
+            <span className="flex items-center gap-3">
+              {theme === "dark" ? (
+                <Sun size={18} className="text-amber-300" />
+              ) : (
+                <Moon size={18} className="text-violet-300" />
+              )}
+              <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+            </span>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] uppercase tracking-[0.24em] text-white/60 transition-all duration-300 group-hover:bg-white/15">
+              {theme === "dark" ? "Switch" : "Switch"}
+            </span>
           </button>
+
+          <div className="rounded-[28px] border border-white/10 bg-white/5 p-4 text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <p className="text-sm font-semibold text-white">Theme</p>
+            <p className="mt-1 text-xs leading-5 text-white/50">
+              {theme === "dark"
+                ? "Deep glass dark with blue accents and cool contrast."
+                : "Soft light palette with minimal glass surfaces."}
+            </p>
+          </div>
         </div>
 
-        {/* Footer with Logout */}
-        <div className="p-4 border-t border-app-dark mt-auto bg-app-bg/30">
+        <div className="sticky bottom-0 z-10 border-t border-white/[0.08] bg-gradient-to-t from-slate-950/90 via-slate-950/60 to-transparent p-4 backdrop-blur-xl">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 w-full px-3 py-2.5 rounded-md hover:bg-app-danger/10 text-app-text hover:text-app-danger transition-colors text-sm font-medium"
+            className="flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#F87171] via-[#E11D48] to-[#B91C1C] px-4 py-3 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(232,121,121,0.25)] transition duration-300 hover:shadow-[0_22px_48px_rgba(232,121,121,0.35)] hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-red-400/30"
           >
             <LogOut size={18} />
-            <span>Log Out</span>
+            <span>Logout</span>
           </button>
         </div>
-      </div>
+      </aside>
     </>
   );
 }

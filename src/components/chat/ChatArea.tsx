@@ -2,17 +2,20 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Send,
   ArrowLeft,
+  Mic,
+  Paperclip,
+  Phone,
+  Search,
+  Send,
+  Settings,
   Trash2,
   UserMinus,
-  Search,
+  Video,
   X,
-  Paperclip,
-  Reply,
 } from "lucide-react";
 import Image from "next/image";
-import { User, Message } from "@/types/chat";
+import { Message, User } from "@/types/chat";
 import { MessageBubble } from "./MessageBubble";
 import { MessageSkeleton } from "./MessageSkeleton";
 import { TypingIndicator } from "./TypingIndicator";
@@ -23,7 +26,10 @@ interface ChatAreaProps {
   messages: Message[];
   userId: string;
   typingFrom: string | null;
-  messageStatuses: Record<string, "sent" | "delivered" | "read">;
+  messageStatuses: Record<
+    string,
+    "sent" | "delivered" | "read" | "pending" | "error"
+  >;
   input: string;
   onInputChange: (val: string) => void;
   onSend: (
@@ -36,13 +42,29 @@ interface ChatAreaProps {
   onBack: () => void;
   isHiddenOnMobile?: boolean;
   isLoading?: boolean;
-  onReact: (messageId: string, emoji: string) => void;
-  onEdit: (messageId: string, newContent: string) => void;
-  onDelete: (messageId: string) => void;
-  replyTo: Message | null;
-  onCancelReply: () => void;
+  onRetry?: (message: Message) => void;
   onReply: (message: Message) => void;
 }
+
+const getDayLabel = (dateValue: Date | string) => {
+  const date = new Date(dateValue);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (sameDay(date, today)) return "Today";
+  if (sameDay(date, yesterday)) return "Yesterday";
+  return date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() === today.getFullYear() ? undefined : "numeric",
+  });
+};
 
 export function ChatArea({
   selectedUser,
@@ -59,31 +81,22 @@ export function ChatArea({
   onBack,
   isHiddenOnMobile = false,
   isLoading = false,
-  onReact,
-  onEdit,
-  onDelete,
-  replyTo,
-  onCancelReply,
+  onRetry,
   onReply,
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Search local state
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Drag and drop / file local state
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingFrom]);
 
-  // Clean up object URLs on unmount or file change
   useEffect(() => {
     return () => {
       if (filePreview) URL.revokeObjectURL(filePreview);
@@ -103,7 +116,6 @@ export function ChatArea({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileSelection(e.dataTransfer.files[0]);
     }
@@ -118,8 +130,7 @@ export function ChatArea({
   const handleFileSelection = (file: File) => {
     setSelectedFile(file);
     if (file.type.startsWith("image/")) {
-      const url = URL.createObjectURL(file);
-      setFilePreview(url);
+      setFilePreview(URL.createObjectURL(file));
     } else {
       setFilePreview(null);
     }
@@ -134,13 +145,11 @@ export function ChatArea({
 
   const handleSendClick = () => {
     if (!input.trim() && !selectedFile) return;
-    onSend(input, replyTo, selectedFile);
+    onSend(input, null, selectedFile);
     onInputChange("");
     handleCancelFile();
-    onCancelReply();
   };
 
-  // Filter messages based on search query
   const filteredMessages = searchQuery.trim()
     ? messages.filter((msg) =>
         msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -150,20 +159,16 @@ export function ChatArea({
   if (!selectedUser) {
     return (
       <div
-        className={`flex-1 flex-col items-center justify-center bg-discord-bg text-discord-text-muted ${
+        className={`panel-enter glass-panel flex-1 flex-col items-center justify-center rounded-[28px] p-8 text-center text-white/54 ${
           isHiddenOnMobile ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="w-24 h-24 mb-6 opacity-20 bg-discord-text-muted rounded-full flex items-center justify-center">
-          <svg
-            className="w-12 h-12 text-discord-bg"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10s10-4.48 10-10C22 6.48 17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" />
-          </svg>
+        <div className="mb-5 flex h-24 w-24 items-center justify-center rounded-full border border-white/15 bg-white/[0.08]">
+          <Search size={38} className="text-white/45" />
         </div>
-        <p className="text-lg font-medium">Select a chat to start messaging</p>
+        <p className="text-lg font-semibold text-white">
+          Select a chat to start messaging
+        </p>
       </div>
     );
   }
@@ -171,35 +176,32 @@ export function ChatArea({
   return (
     <div
       onDragOver={handleDragOver}
-      className={`flex-1 flex-col bg-discord-bg relative ${
+      className={`panel-enter glass-panel relative flex-1 flex-col overflow-hidden rounded-[28px] ${
         isHiddenOnMobile ? "hidden md:flex" : "flex"
       }`}
     >
-      {/* File Drag and Drop Overlay */}
       {isDragging && (
         <div
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className="absolute inset-0 bg-discord-bg/90 border-4 border-dashed border-discord-brand z-50 flex flex-col items-center justify-center pointer-events-auto transition-all"
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-[#4CD964]/70 bg-black/55 backdrop-blur-xl transition-all"
         >
-          <div className="p-4 bg-discord-brand/10 rounded-full text-discord-brand animate-pulse mb-3">
+          <div className="mb-3 rounded-full bg-[#4CD964]/14 p-4 text-[#4CD964]">
             <Paperclip size={48} />
           </div>
-          <p className="text-xl font-bold text-discord-text-bright">
-            Drop files to upload
-          </p>
-          <p className="text-sm text-discord-text-muted mt-1">
+          <p className="text-xl font-bold text-white">Drop files to upload</p>
+          <p className="mt-1 text-sm text-white/52">
             Images or attachments are supported
           </p>
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 bg-discord-bg border-b border-discord-dark z-20 shadow-xs shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="glass-soft z-20 m-3 flex shrink-0 items-center justify-between gap-3 rounded-[24px] px-4 py-3 sm:m-4">
+        <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onBack}
-            className="md:hidden p-1.5 mr-1 text-discord-text-muted hover:text-discord-text-bright rounded-md hover:bg-discord-hover transition-colors"
+            className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white md:hidden"
+            aria-label="Back to chat list"
           >
             <ArrowLeft size={20} />
           </button>
@@ -208,50 +210,50 @@ export function ChatArea({
             {selectedUser.profilePic ? (
               <Image
                 src={selectedUser.profilePic}
-                width={40}
-                height={40}
-                className="rounded-full object-cover w-10 h-10"
+                width={44}
+                height={44}
+                className="h-11 w-11 rounded-full object-cover ring-1 ring-white/20"
                 alt={selectedUser.username}
               />
             ) : (
-              <div className="rounded-full bg-discord-sidebar w-10 h-10 flex items-center justify-center border border-discord-dark">
-                <span className="text-discord-text-muted font-bold text-lg">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-white/10">
+                <span className="text-lg font-bold text-white/70">
                   {selectedUser.username.charAt(0).toUpperCase()}
                 </span>
               </div>
             )}
             <span
-              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-bg ${
-                isOnline ? "bg-discord-success" : "bg-gray-500"
+              className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#15171b] ${
+                isOnline ? "bg-[#4CD964]" : "bg-white/30"
               }`}
             />
           </div>
 
-          <div className="flex flex-col min-w-0">
-            <h2 className="font-semibold text-discord-text-bright leading-tight truncate">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold leading-tight text-white">
               {selectedUser.username}
             </h2>
-            <span className="text-xs text-discord-text-muted">
-              {isOnline ? "Online" : "Offline"}
+            <span className="block truncate text-xs text-white/48">
+              {selectedUser.email || (isOnline ? "Online" : "Offline")}
             </span>
           </div>
         </div>
 
-        {/* Message Search Input inside Header */}
         {showSearch && (
-          <div className="flex-1 max-w-xs mx-4 bg-discord-dark border border-discord-dark rounded-md px-2.5 py-1 flex items-center gap-2">
-            <Search size={14} className="text-discord-text-muted" />
+          <div className="hidden max-w-xs flex-1 items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-2 sm:flex">
+            <Search size={14} className="text-white/48" />
             <input
               type="text"
               placeholder="Search in chat..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-transparent text-xs text-discord-text outline-none"
+              className="min-w-0 flex-1 bg-transparent text-xs text-white outline-none placeholder:text-white/38"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="text-discord-text-muted hover:text-discord-text-bright"
+                className="text-white/48 hover:text-white"
+                aria-label="Clear message search"
               >
                 <X size={14} />
               </button>
@@ -259,158 +261,151 @@ export function ChatArea({
           </div>
         )}
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block" title="Audio call">
+            <Phone size={18} />
+          </button>
+          <button className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block" title="Video call">
+            <Video size={18} />
+          </button>
           <button
             onClick={() => {
               setShowSearch(!showSearch);
               if (showSearch) setSearchQuery("");
             }}
-            className={`p-2 rounded-md transition-colors ${
+            className={`rounded-full p-2 transition-colors ${
               showSearch
-                ? "bg-discord-active text-discord-text-bright"
-                : "text-discord-text-muted hover:text-discord-text-bright hover:bg-discord-hover"
+                ? "bg-[#4CD964]/18 text-[#4CD964]"
+                : "text-white/58 hover:bg-white/10 hover:text-white"
             }`}
-            title="Search Messages"
+            title="Search messages"
           >
             <Search size={18} />
           </button>
           <button
             onClick={onUnfriend}
-            className="p-2 text-discord-text-muted hover:text-discord-danger hover:bg-discord-hover rounded-md transition-colors group"
+            className="rounded-full p-2 text-white/58 transition-colors hover:bg-red-500/10 hover:text-red-300"
             title="Unfriend"
           >
-            <UserMinus
-              size={18}
-              className="group-hover:scale-105 transition-transform"
-            />
+            <UserMinus size={18} />
           </button>
           <button
             onClick={onDeleteChat}
-            className="p-2 text-discord-text-muted hover:text-discord-danger hover:bg-discord-hover rounded-md transition-colors group"
-            title="Delete Chat"
+            className="rounded-full p-2 text-white/58 transition-colors hover:bg-red-500/10 hover:text-red-300"
+            title="Delete chat"
           >
-            <Trash2
-              size={18}
-              className="group-hover:scale-105 transition-transform"
-            />
+            <Trash2 size={18} />
+          </button>
+          <button className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white" title="Settings">
+            <Settings size={18} />
           </button>
         </div>
       </div>
 
-      {/* Messages Wrapper */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 flex flex-col gap-1">
-        {isLoading ? (
-          // Render 6 alternating skeletons
-          Array.from({ length: 6 }).map((_, i) => (
-            <MessageSkeleton key={i} align={i % 2 === 0 ? "left" : "right"} />
-          ))
-        ) : filteredMessages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center mt-10 text-center">
-            <div className="w-20 h-20 bg-discord-sidebar rounded-full flex items-center justify-center mb-4">
-              <span className="text-3xl">👋</span>
+      <div className="flex-1 overflow-y-auto px-4 pb-3 pt-1 sm:px-6">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <MessageSkeleton key={i} align={i % 2 === 0 ? "left" : "right"} />
+            ))
+          ) : filteredMessages.length === 0 ? (
+            <div className="flex flex-1 flex-col items-center justify-center py-20 text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-white/15 bg-white/[0.08]">
+                <Mic size={30} className="text-white/45" />
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-white">
+                {searchQuery
+                  ? "No matching messages"
+                  : `Say hi to ${selectedUser.username}`}
+              </h3>
+              <p className="max-w-xs px-4 text-sm text-white/50">
+                {searchQuery
+                  ? "Try searching for a different keyword."
+                  : `This is the beginning of your direct message history with ${selectedUser.username}.`}
+              </p>
             </div>
-            <h3 className="text-xl font-bold text-discord-text-bright mb-2">
-              {searchQuery
-                ? "No matching messages"
-                : `Say hi to ${selectedUser.username}!`}
-            </h3>
-            <p className="text-discord-text-muted text-sm max-w-xs px-4">
-              {searchQuery
-                ? "Try searching for a different keyword."
-                : `This is the beginning of your direct message history with ${selectedUser.username}.`}
-            </p>
-          </div>
-        ) : (
-          filteredMessages.map((message) => (
-            <MessageBubble
-              key={message.id || Math.random()}
-              message={message}
-              isOwn={message.senderId === userId}
-              status={messageStatuses[message.id]}
-              userId={userId}
-              senderName={
-                message.senderId === userId ? "You" : selectedUser.username
-              }
-              onReact={onReact}
-              onReply={onReply}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
-          ))
-        )}
+          ) : (
+            filteredMessages.map((message, index) => {
+              const currentLabel = getDayLabel(message.createdAt);
+              const previous = filteredMessages[index - 1];
+              const previousLabel = previous
+                ? getDayLabel(previous.createdAt)
+                : null;
+              const showSeparator = currentLabel !== previousLabel;
 
-        {typingFrom === selectedUser.id && (
-          <TypingIndicator username={selectedUser.username} />
-        )}
+              return (
+                <React.Fragment key={message.id || `${index}-${message.createdAt}`}>
+                  {showSeparator && (
+                    <div className="my-4 flex items-center justify-center">
+                      <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-[11px] font-medium text-white/45 backdrop-blur-xl">
+                        {currentLabel}
+                      </span>
+                    </div>
+                  )}
+                  <MessageBubble
+                    message={message}
+                    isOwn={message.senderId === userId}
+                    status={messageStatuses[message.id]}
+                    userId={userId}
+                    senderName={
+                      message.senderId === userId ? "You" : selectedUser.username
+                    }
+                    onReact={() => {}}
+                    onReply={onReply}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    onRetry={onRetry}
+                  />
+                </React.Fragment>
+              );
+            })
+          )}
 
-        <div ref={messagesEndRef} className="h-4" />
+          {typingFrom === selectedUser.id && (
+            <TypingIndicator username={selectedUser.username} />
+          )}
+
+          <div ref={messagesEndRef} className="h-4" />
+        </div>
       </div>
 
-      {/* Bottom Input Area */}
-      <div className="p-4 bg-discord-bg shrink-0 border-t border-discord-dark/20">
-        {/* Reply Bar */}
-        {replyTo && (
-          <div className="bg-discord-sidebar border-l-4 border-discord-brand px-4 py-2 mb-2 rounded-r-md flex items-center justify-between text-xs animate-slideDown">
-            <div className="flex items-center gap-1.5 text-discord-text-muted truncate">
-              <Reply size={12} className="shrink-0" />
-              <span>
-                Replying to{" "}
-                <span className="font-semibold text-discord-text-bright">
-                  @{replyTo.senderId === userId ? "You" : selectedUser.username}
-                </span>
-                :
-              </span>
-              <span className="italic truncate max-w-[400px]">
-                "{replyTo.content}"
-              </span>
-            </div>
-            <button
-              onClick={onCancelReply}
-              className="text-discord-text-muted hover:text-discord-text-bright p-0.5 rounded-full hover:bg-discord-hover transition-colors"
-            >
-              <X size={14} />
-            </button>
-          </div>
-        )}
-
-        {/* File Preview Bar */}
+      <div className="shrink-0 px-3 pb-3 sm:px-4 sm:pb-4">
         {selectedFile && (
-          <div className="bg-discord-sidebar px-4 py-3 mb-2 rounded-md flex items-center justify-between gap-3 text-xs border border-discord-dark/30 animate-slideDown">
-            <div className="flex items-center gap-3 min-w-0">
+          <div className="glass-soft mb-3 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-xs">
+            <div className="flex min-w-0 items-center gap-3">
               {filePreview ? (
-                <div className="relative w-10 h-10 rounded overflow-hidden bg-black/10 shrink-0">
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-black/10">
                   <img
                     src={filePreview}
                     alt="upload preview"
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
                 </div>
               ) : (
-                <div className="w-10 h-10 rounded bg-discord-brand/10 text-discord-brand flex items-center justify-center shrink-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4CD964]/14 text-[#4CD964]">
                   <Paperclip size={18} />
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-semibold text-discord-text-bright truncate">
+                <p className="truncate font-semibold text-white">
                   {selectedFile.name}
                 </p>
-                <p className="text-[10px] text-discord-text-muted">
+                <p className="text-[10px] text-white/46">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                 </p>
               </div>
             </div>
             <button
               onClick={handleCancelFile}
-              className="text-discord-text-muted hover:text-discord-danger p-1 rounded-full hover:bg-discord-hover transition-colors"
+              className="rounded-full p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-red-300"
+              aria-label="Cancel file upload"
             >
               <X size={16} />
             </button>
           </div>
         )}
 
-        {/* Main Input Controls */}
-        <div className="bg-discord-input rounded-xl px-4 py-2.5 flex items-end gap-3 max-w-full relative shadow-xs">
-          {/* File input */}
+        <div className="glass-soft flex items-end gap-3 rounded-[24px] p-2.5">
           <input
             type="file"
             ref={fileInputRef}
@@ -419,42 +414,41 @@ export function ChatArea({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="p-1.5 rounded-md text-discord-text-muted hover:text-discord-text-bright hover:bg-discord-hover mb-1 transition-all"
+            className="mb-1 rounded-full p-2 text-white/52 transition-all hover:bg-white/10 hover:text-white"
             title="Attach file"
           >
-            <Paperclip size={18} />
+            <Paperclip size={19} />
           </button>
 
-          <textarea
-            value={input}
-            onChange={(e) => onInputChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendClick();
-              }
-            }}
-            placeholder={`Message @${selectedUser.username}`}
-            className="flex-1 bg-transparent text-discord-text-bright placeholder-discord-text-muted outline-none resize-none max-h-32 min-h-[24px] py-1.5 custom-scrollbar text-sm"
-            rows={1}
-            style={{
-              height: input ? "auto" : "36px",
-            }}
-          />
+          <div className="flex min-h-11 flex-1 items-end gap-2 rounded-full border border-white/10 bg-black/18 px-4 py-2">
+            <textarea
+              value={input}
+              onChange={(e) => onInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendClick();
+                }
+              }}
+              placeholder={`Message ${selectedUser.username}`}
+              className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-sm leading-5 text-white outline-none placeholder:text-white/38"
+              rows={1}
+              style={{ height: input ? "auto" : "32px" }}
+            />
+            <Mic size={18} className="mb-1 text-white/44" />
+          </div>
 
           <button
             onClick={handleSendClick}
             disabled={!input.trim() && !selectedFile}
-            className={`p-2 rounded-full mb-0.5 transition-all ${
+            className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all active:scale-95 ${
               input.trim() || selectedFile
-                ? "bg-discord-brand text-white hover:bg-discord-brand-hover hover:scale-102 shadow-xs"
-                : "bg-discord-dark text-discord-text-muted cursor-not-allowed"
+                ? "bg-[#4CD964] text-black shadow-[0_0_26px_rgba(76,217,100,0.34)] hover:bg-[#39c856]"
+                : "bg-white/[0.08] text-white/38"
             }`}
           >
-            <Send
-              size={16}
-              className={input.trim() || selectedFile ? "ml-0.5" : ""}
-            />
+            <span className="hidden sm:inline">Send</span>
+            <Send size={16} />
           </button>
         </div>
       </div>

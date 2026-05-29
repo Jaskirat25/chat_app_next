@@ -1,29 +1,44 @@
 import React from "react";
 
-/**
- * Generic pulse skeleton loader used throughout the chat UI.
- * It adapts to the surrounding dark/light theme via Tailwind's `bg-gray-300` which
- * works well with both background colors.
- */
+interface SkeletonLoaderProps {
+  type?: "list" | "message" | "avatar" | "text";
+  width?: string;
+  height?: string;
+  className?: string;
+  customStyle?: React.CSSProperties;
+}
+
 export function SkeletonLoader({
   type = "list",
-}: { type?: "list" | "message" }) {
-  if (type === "message") {
-    // Message bubble skeleton – mimics left aligned bubble shape
+  width,
+  height,
+  className = "",
+  customStyle,
+}: SkeletonLoaderProps) {
+  if (type === "avatar") {
     return (
-      <div className="flex w-full max-w-[75%] px-4 py-2.5 rounded-2xl bg-gray-300/30 animate-pulse">
-        <div className="h-4 bg-gray-300 rounded w-24" />
-      </div>
+      <div
+        className={`${width || "w-11"} ${height || "h-11"} rounded-full bg-white/[0.12] ${className}`}
+        style={customStyle}
+      />
     );
   }
 
-  // Default list (friend) skeleton
+  if (type === "text" || type === "message") {
+    return (
+      <div
+        className={`${width || "w-24"} ${height || "h-4"} rounded-2xl bg-white/[0.12] ${className}`}
+        style={customStyle}
+      />
+    );
+  }
+
   return (
-    <div className="flex items-center space-x-2 p-2 animate-pulse">
-      <div className="rounded-full bg-gray-300 h-8 w-8" />
+    <div className={`flex animate-pulse items-center gap-3 p-2 ${className}`}>
+      <div className="h-11 w-11 rounded-full bg-white/[0.12]" />
       <div className="flex-1 space-y-2 py-1">
-        <div className="h-4 bg-gray-300 rounded w-3/4" />
-        <div className="h-4 bg-gray-300 rounded w-1/2" />
+        <div className="h-4 w-3/4 rounded-full bg-white/[0.12]" />
+        <div className="h-3 w-1/2 rounded-full bg-white/[0.10]" />
       </div>
     </div>
   );
