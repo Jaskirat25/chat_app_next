@@ -33,9 +33,30 @@ export default function Home() {
   const socketRef = useRef<Socket | null>(null);
   const selectedUserRef = useRef<User | null>(null);
   const conversationIdRef = useRef("");
+  // conversationId lookup: friendId → conversationId (populated by friend-added event or fetchConversationId)
+  const conversationIdLookupRef = useRef<Record<string, string>>({});
+
+  // Per-user loading/success/error state for the Add Friend button
+  const [addFriendLoading, setAddFriendLoading] = useState<
+    Record<string, boolean>
+  >({});
+  const [addFriendSuccess, setAddFriendSuccess] = useState<
+    Record<string, boolean>
+  >({});
+  const [addFriendError, setAddFriendError] = useState<Record<string, string>>(
+    {},
+  );
+
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [isLoadingFriends, setIsLoadingFriends] = useState(false);
   const [isLoadingChats, setIsLoadingChats] = useState(false);
+  const [isUnfriending, setIsUnfriending] = useState(false);
+  const [isDeletingChat, setIsDeletingChat] = useState(false);
+  const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
+  const [pendingUnfriendId, setPendingUnfriendId] = useState<string | null>(
+    null,
+  );
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingEmitTimeoutRef = useRef<number | null>(null);
   const typingIndicatorTimeoutRef = useRef<number | null>(null);
@@ -60,6 +81,33 @@ export default function Home() {
       console.error("Error fetching friends:", error);
     } finally {
       setIsLoadingFriends(false);
+    }
+  };
+
+  const uploadImageToCloudinary = async (
+    file: File,
+  ): Promise<string | null> => {
+    setIsUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await api.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        timeout: 30000, // 30 seconds for file upload
+      });
+
+      if (response.status === 200 && response.data.url) {
+        return response.data.url;
+      }
+      return null;
+    } catch (error) {
+      console.error("Image upload failed:", error);
+      return null;
+    } finally {
+      setIsUploadingFile(false);
     }
   };
 
@@ -128,10 +176,25 @@ export default function Home() {
   };
 
   const handleAddFriend = async (friendId: string) => {
+    setAddFriendLoading((prev) => ({ ...prev, [friendId]: true }));
+    setAddFriendError((prev) => {
+      const next = { ...prev };
+      delete next[friendId];
+      return next;
+    });
     try {
       const response = await api.post("/api/Users/addFriend", { friendId });
       if (response.status === 201 || response.status === 200) {
-        await fetchFriends();
+        // Friend list state is updated by the friend-added socket event.
+        // Just set success feedback here.
+        setAddFriendSuccess((prev) => ({ ...prev, [friendId]: true }));
+        setTimeout(() => {
+          setAddFriendSuccess((prev) => {
+            const next = { ...prev };
+            delete next[friendId];
+            return next;
+          });
+        }, 2000);
         setSearchResults((prev) =>
           prev.map((user) =>
             user.id === friendId ? { ...user, isFriend: true } : user,
@@ -140,6 +203,16 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Add friend failed:", error);
+      setAddFriendError((prev) => ({
+        ...prev,
+        [friendId]: "Failed to add friend. Please try again.",
+      }));
+    } finally {
+      setAddFriendLoading((prev) => {
+        const next = { ...prev };
+        delete next[friendId];
+        return next;
+      });
     }
   };
 
@@ -164,7 +237,15 @@ export default function Home() {
     conversationIdRef.current = conversationId;
   }, [conversationId]);
 
+  const requestUnfriend = (friendId: string) => {
+    setPendingUnfriendId(friendId);
+    setShowUnfriendConfirm(true);
+  };
+
   const handleUnfriend = async (friendId: string) => {
+    setShowUnfriendConfirm(false);
+    setIsUnfriending(true);
+
     try {
       const response = await api.post("/api/Users/unfriend", { friendId });
       if (response.status === 200 || response.status === 201) {
@@ -179,28 +260,59 @@ export default function Home() {
           delete next[friendId];
           return next;
         });
+
         if (selectedUser?.id === friendId) {
-          setSelectedUser(null);
-          setMessages([]);
+          const deleted = await handleDeleteChat();
+          if (!deleted) {
+            setMessages([]);
+            setConversationId("");
+            setSelectedUser(null);
+          }
         }
       }
     } catch (error) {
       console.error("Unfriend failed:", error);
+    } finally {
+      setIsUnfriending(false);
+      setPendingUnfriendId(null);
     }
   };
 
   const handleDeleteChat = async () => {
-    if (!conversationId || !selectedUser) return;
+    if (!conversationId || !selectedUser) return true;
 
+    setIsDeletingChat(true);
     try {
       const response = await api.delete(`/api/conversation/${conversationId}`);
       if (response.status === 200) {
         setMessages([]);
         setConversationId("");
+        setUnreadCounts((prev) => {
+          const next = { ...prev };
+          delete next[selectedUser.id];
+          return next;
+        });
         setSelectedUser(null);
+        return true;
       }
-    } catch (error) {
+      return false;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      if (status === 404) {
+        setMessages([]);
+        setConversationId("");
+        setUnreadCounts((prev) => {
+          const next = { ...prev };
+          delete next[selectedUser.id];
+          return next;
+        });
+        setSelectedUser(null);
+        return true;
+      }
       console.error("Delete chat failed:", error);
+      return false;
+    } finally {
+      setIsDeletingChat(false);
     }
   };
 
@@ -217,7 +329,9 @@ export default function Home() {
 
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL ||
-      "https://chat-app-server-ah27.onrender.com";
+      (process.env.NODE_ENV === "development"
+        ? "http://localhost:3001"
+        : "https://chat-app-server-ah27.onrender.com");
 
     const newSocket = io(socketUrl, {
       auth: { token: userId },
@@ -355,6 +469,41 @@ export default function Home() {
     socket.on("message-delivered", handleMessageDelivered);
     socket.on("message-read", handleMessageRead);
 
+    type FriendAddedPayload = {
+      newFriend: {
+        id: string;
+        username: string;
+        email: string;
+        profilePic: string | null;
+        lastSeen: string;
+      };
+      conversationId: string;
+      forUserId: string;
+    };
+
+    const handleFriendAdded = (payload: FriendAddedPayload) => {
+      const { newFriend, conversationId: newConversationId } = payload;
+
+      // Idempotency guard — skip if already in friends list
+      setUserFriends((prev) => {
+        if (prev.some((f) => f.id === newFriend.id)) return prev;
+        return [
+          ...prev,
+          { ...newFriend, lastSeen: String(newFriend.lastSeen) },
+        ];
+      });
+
+      // Store conversationId in the lookup ref for immediate use in handleSend
+      conversationIdLookupRef.current[newFriend.id] = newConversationId;
+
+      // Update search results if the user is currently shown
+      setSearchResults((prev) =>
+        prev.map((u) => (u.id === newFriend.id ? { ...u, isFriend: true } : u)),
+      );
+    };
+
+    socket.on("friend-added", handleFriendAdded);
+
     return () => {
       socket.off("presence-init", handlePresenceInit);
       socket.off("presence-update", handlePresenceUpdate);
@@ -363,6 +512,7 @@ export default function Home() {
       socket.off("stop-typing", handleStopTyping);
       socket.off("message-delivered", handleMessageDelivered);
       socket.off("message-read", handleMessageRead);
+      socket.off("friend-added", handleFriendAdded);
     };
   }, [userId]);
 
@@ -497,13 +647,63 @@ export default function Home() {
     setInput("");
     setReplyTo(null);
 
+    let photoUrl: string | null = null;
+
+    // Upload image if provided
+    if (file) {
+      photoUrl = await uploadImageToCloudinary(file);
+      if (!photoUrl) {
+        const tempId = Date.now().toString();
+        setMessageStatuses((prev) => ({ ...prev, [tempId]: "error" }));
+        return;
+      }
+    }
+
+    // --- Race condition guard: resolve conversationId if not yet available ---
+    let resolvedConversationId = conversationIdRef.current;
+
+    if (!resolvedConversationId) {
+      // Check the lookup ref first (populated by friend-added event)
+      resolvedConversationId =
+        conversationIdLookupRef.current[selectedUser.id] ?? "";
+    }
+
+    if (!resolvedConversationId) {
+      try {
+        const idRes = await api.get(
+          `/api/fetchConversationId?token=${selectedUser.id}`,
+        );
+        resolvedConversationId = idRes.data.conversationId;
+        setConversationId(resolvedConversationId);
+        conversationIdRef.current = resolvedConversationId;
+        conversationIdLookupRef.current[selectedUser.id] =
+          resolvedConversationId;
+      } catch (fetchError) {
+        console.error("Could not resolve conversationId:", fetchError);
+        const tempId = Date.now().toString();
+        const failedMessage: Message = {
+          id: tempId,
+          content: textToSend || null,
+          photoUrl: photoUrl || null,
+          senderId: userId,
+          receiverId: selectedUser.id,
+          conversationId: "",
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, failedMessage]);
+        setMessageStatuses((prev) => ({ ...prev, [tempId]: "error" }));
+        return;
+      }
+    }
+
     const tempId = Date.now().toString();
     const optimisticMessage: Message = {
       id: tempId,
-      content: textToSend,
+      content: textToSend || null,
+      photoUrl: photoUrl || null,
       senderId: userId,
       receiverId: selectedUser.id,
-      conversationId: conversationId,
+      conversationId: resolvedConversationId,
       createdAt: new Date().toISOString(),
       replyTo: replyToMsg
         ? {
@@ -521,14 +721,31 @@ export default function Home() {
 
     try {
       const messageData = {
-        content: textToSend,
-        conversationId: conversationId,
+        content: textToSend || null,
+        photoUrl: photoUrl || null,
+        conversationId: resolvedConversationId,
         senderId: userId,
         receiverId: selectedUser.id,
         replyTo: replyToMsg,
       };
 
-      const response = await api.post("/api/conversation/store", messageData);
+      let response = await api.post("/api/conversation/store", messageData);
+
+      if (response.status === 404) {
+        const idRes = await api.get(
+          `/api/fetchConversationId?token=${selectedUser.id}`,
+        );
+        resolvedConversationId = idRes.data.conversationId;
+        setConversationId(resolvedConversationId);
+        conversationIdRef.current = resolvedConversationId;
+        conversationIdLookupRef.current[selectedUser.id] =
+          resolvedConversationId;
+
+        response = await api.post("/api/conversation/store", {
+          ...messageData,
+          conversationId: resolvedConversationId,
+        });
+      }
 
       if (response.status === 201 || response.status === 200) {
         const savedMessage = response.data;
@@ -550,9 +767,62 @@ export default function Home() {
           delete next[tempId];
           return { ...next, [savedMessage.id]: "sent" };
         });
+      } else {
+        console.error(
+          "Unexpected response from store message:",
+          response.status,
+        );
+        setMessageStatuses((prev) => ({ ...prev, [tempId]: "error" }));
       }
-    } catch (error) {
-      console.error("Error in handleSend:", error);
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        try {
+          const idRes = await api.get(
+            `/api/fetchConversationId?token=${selectedUser.id}`,
+          );
+          resolvedConversationId = idRes.data.conversationId;
+          setConversationId(resolvedConversationId);
+          conversationIdRef.current = resolvedConversationId;
+          conversationIdLookupRef.current[selectedUser.id] =
+            resolvedConversationId;
+
+          const retryResponse = await api.post("/api/conversation/store", {
+            content: textToSend || null,
+            photoUrl: photoUrl || null,
+            conversationId: resolvedConversationId,
+            senderId: userId,
+            receiverId: selectedUser.id,
+            replyTo: replyToMsg,
+          });
+
+          if (retryResponse.status === 201 || retryResponse.status === 200) {
+            const savedMessage = retryResponse.data;
+            if (socketRef.current) {
+              socketRef.current.emit("send-message", {
+                receiverId: selectedUser.id,
+                message: savedMessage,
+              });
+            }
+
+            setMessages((prev) =>
+              prev.some((m) => m.id === savedMessage.id)
+                ? prev.filter((m) => m.id !== tempId)
+                : prev.map((m) => (m.id === tempId ? savedMessage : m)),
+            );
+            setMessageStatuses((prev) => {
+              const next = { ...prev };
+              delete next[tempId];
+              return { ...next, [savedMessage.id]: "sent" };
+            });
+            return;
+          }
+        } catch (retryError) {
+          console.error("Retry after conversation refresh failed:", retryError);
+        }
+      } else {
+        console.error("Error in handleSend:", error);
+      }
+
       setMessageStatuses((prev) => ({ ...prev, [tempId]: "error" }));
     }
   };
@@ -582,6 +852,9 @@ export default function Home() {
         onAddFriend={handleAddFriend}
         isHiddenOnMobile={!!selectedUser}
         isLoading={isLoadingFriends}
+        addFriendLoading={addFriendLoading}
+        addFriendSuccess={addFriendSuccess}
+        addFriendError={addFriendError}
       />
       <ChatArea
         selectedUser={selectedUser}
@@ -594,12 +867,47 @@ export default function Home() {
         input={input}
         onInputChange={handleInputChange}
         onDeleteChat={handleDeleteChat}
-        onUnfriend={() => selectedUser && handleUnfriend(selectedUser.id)}
+        onUnfriend={() => selectedUser && requestUnfriend(selectedUser.id)}
         onBack={() => setSelectedUser(null)}
         isLoading={isLoadingChats}
+        isUnfriending={isUnfriending}
+        isDeletingChat={isDeletingChat}
         onRetry={handleRetry}
         onReply={setReplyTo}
       />
+
+      {showUnfriendConfirm && selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
+          <div className="w-full max-w-md rounded-2xl bg-slate-950 p-6 shadow-xl ring-1 ring-white/10">
+            <h2 className="mb-3 text-xl font-semibold text-white">
+              Confirm Unfriend
+            </h2>
+            <p className="mb-6 text-sm text-slate-300">
+              Are you sure you want to unfriend {selectedUser.username}? This
+              will also delete the current chat with them.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUnfriendConfirm(false);
+                  setPendingUnfriendId(null);
+                }}
+                className="rounded-full border border-white/10 bg-slate-900 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => selectedUser && handleUnfriend(selectedUser.id)}
+                className="rounded-full bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600"
+              >
+                Unfriend and delete chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

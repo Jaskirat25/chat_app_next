@@ -22,6 +22,9 @@ interface SidebarProps {
   onAddFriend: (id: string) => void;
   isHiddenOnMobile?: boolean;
   isLoading?: boolean;
+  addFriendLoading?: Record<string, boolean>;
+  addFriendSuccess?: Record<string, boolean>;
+  addFriendError?: Record<string, string>;
 }
 
 export function Sidebar({
@@ -40,6 +43,9 @@ export function Sidebar({
   onAddFriend,
   isHiddenOnMobile = false,
   isLoading = false,
+  addFriendLoading = {},
+  addFriendSuccess = {},
+  addFriendError = {},
 }: SidebarProps) {
   const [filterUnread, setFilterUnread] = useState(false);
   const [showAddContactModal, setShowAddContactModal] = useState(false);
@@ -160,6 +166,9 @@ export function Sidebar({
                   onSelect={onSelectUser}
                   onAddFriend={onAddFriend}
                   isSearchMode={true}
+                  isAddingFriend={addFriendLoading[user.id] ?? false}
+                  addFriendSuccess={addFriendSuccess[user.id] ?? false}
+                  addFriendError={addFriendError[user.id]}
                 />
               ))}
             </div>
@@ -300,6 +309,9 @@ export function Sidebar({
                         }}
                         onAddFriend={onAddFriend}
                         isSearchMode={true}
+                        isAddingFriend={addFriendLoading[user.id] ?? false}
+                        addFriendSuccess={addFriendSuccess[user.id] ?? false}
+                        addFriendError={addFriendError[user.id]}
                       />
                     ))}
                   </div>

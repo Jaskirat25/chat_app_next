@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Mic, User as UserIcon } from "lucide-react";
+import { Mic, User as UserIcon, Loader2, Check } from "lucide-react";
 import { User, SearchUser } from "@/types/chat";
 
 interface UserListItemProps {
@@ -10,6 +10,9 @@ interface UserListItemProps {
   onSelect: (user: User) => void;
   onAddFriend?: (id: string) => void;
   isSearchMode?: boolean;
+  isAddingFriend?: boolean;
+  addFriendSuccess?: boolean;
+  addFriendError?: string;
 }
 
 export function UserListItem({
@@ -20,6 +23,9 @@ export function UserListItem({
   onSelect,
   onAddFriend,
   isSearchMode = false,
+  isAddingFriend = false,
+  addFriendSuccess = false,
+  addFriendError,
 }: UserListItemProps) {
   const formatLastSeen = (date?: string) => {
     if (!date) return "Offline";
@@ -118,28 +124,55 @@ export function UserListItem({
         </div>
       </div>
 
-      {isSearchMode && !isFriend && onAddFriend && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddFriend(user.id);
-          }}
-          className="ml-2 flex-shrink-0 rounded-full bg-[#4CD964] px-3 py-1.5 text-xs font-semibold text-black transition-all hover:bg-[#39c856]"
-        >
-          Add
-        </button>
-      )}
-      
-      {isSearchMode && isFriend && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect(user);
-          }}
-          className="ml-2 flex-shrink-0 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
-        >
-          Chat
-        </button>
+      {isSearchMode && onAddFriend && (
+        <>
+          {addFriendSuccess ? (
+            // Success state — shown for 2000ms after successful add
+            <button
+              disabled
+              className="ml-2 flex-shrink-0 rounded-full bg-[#4CD964]/30 px-3 py-1.5 text-xs font-semibold text-[#4CD964] cursor-default"
+              aria-label="Friend added"
+            >
+              <Check size={12} />
+            </button>
+          ) : !isFriend ? (
+            // Add button — loading, error, or default state
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!isAddingFriend) onAddFriend(user.id);
+              }}
+              disabled={isAddingFriend}
+              className={`ml-2 flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                isAddingFriend
+                  ? "bg-white/20 text-white/50 cursor-not-allowed"
+                  : addFriendError
+                  ? "bg-red-500/80 text-white hover:bg-red-500"
+                  : "bg-[#4CD964] text-black hover:bg-[#39c856]"
+              }`}
+              aria-label={isAddingFriend ? "Adding friend..." : addFriendError ? "Retry adding friend" : "Add friend"}
+            >
+              {isAddingFriend ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : addFriendError ? (
+                "Retry"
+              ) : (
+                "Add"
+              )}
+            </button>
+          ) : (
+            // Chat button — already friends
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelect(user);
+              }}
+              className="ml-2 flex-shrink-0 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+            >
+              Chat
+            </button>
+          )}
+        </>
       )}
     </div>
   );

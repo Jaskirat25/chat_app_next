@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { NextResponse } from "next/server";
 import redis from "../../../../lib/redis";
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const receiver_id = searchParams.get("token");
@@ -24,11 +25,20 @@ export async function GET(request: Request) {
   try {
     const cacheKey = `${userId}:${receiver_id}`;
 
-    const cachedConversationId = await redis.get(cacheKey);
+    let cachedConversationId = await redis.get(cacheKey);
 
     if (cachedConversationId != null) {
-      return NextResponse.json({ conversationId: cachedConversationId });
+      const cachedConversation = await prisma.conversation.findUnique({
+        where: { id: cachedConversationId },
+      });
+      if (cachedConversation) {
+        return NextResponse.json({ conversationId: cachedConversationId });
+      }
+      await redis.del(cacheKey);
+      await redis.del(`${receiver_id}:${userId}`);
+      cachedConversationId = null;
     }
+
     const conversation = await prisma.conversation.findFirst({
       where: {
         isGroup: false,

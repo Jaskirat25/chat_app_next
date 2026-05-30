@@ -13,8 +13,8 @@ export interface SearchUser extends User {
 
 export interface Message {
   id: string;
-  content: string;
-  photoUrl?: string;
+  content: string | null;
+  photoUrl?: string | null;
   createdAt: Date | string;
   updatedAt?: Date;
   isEdited?: boolean;
@@ -35,4 +35,3 @@ export interface Message {
   fileName?: string;
   fileType?: string;
 }
-

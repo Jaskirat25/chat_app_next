@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Loader2,
   Mic,
   Paperclip,
   Phone,
@@ -42,6 +43,9 @@ interface ChatAreaProps {
   onBack: () => void;
   isHiddenOnMobile?: boolean;
   isLoading?: boolean;
+  isDeletingChat?: boolean;
+  isUnfriending?: boolean;
+  isUploadingFile?: boolean;
   onRetry?: (message: Message) => void;
   onReply: (message: Message) => void;
 }
@@ -81,6 +85,9 @@ export function ChatArea({
   onBack,
   isHiddenOnMobile = false,
   isLoading = false,
+  isDeletingChat = false,
+  isUnfriending = false,
+  isUploadingFile = false,
   onRetry,
   onReply,
 }: ChatAreaProps) {
@@ -262,10 +269,16 @@ export function ChatArea({
         )}
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <button className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block" title="Audio call">
+          <button
+            className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block"
+            title="Audio call"
+          >
             <Phone size={18} />
           </button>
-          <button className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block" title="Video call">
+          <button
+            className="hidden rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white sm:block"
+            title="Video call"
+          >
             <Video size={18} />
           </button>
           <button
@@ -284,19 +297,42 @@ export function ChatArea({
           </button>
           <button
             onClick={onUnfriend}
-            className="rounded-full p-2 text-white/58 transition-colors hover:bg-red-500/10 hover:text-red-300"
+            disabled={isUnfriending || isDeletingChat}
+            className={`rounded-full p-2 transition-colors ${
+              isUnfriending || isDeletingChat
+                ? "cursor-not-allowed text-white/30"
+                : "text-white/58 hover:bg-red-500/10 hover:text-red-300"
+            }`}
             title="Unfriend"
+            aria-busy={isUnfriending}
           >
-            <UserMinus size={18} />
+            {isUnfriending ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <UserMinus size={18} />
+            )}
           </button>
           <button
             onClick={onDeleteChat}
-            className="rounded-full p-2 text-white/58 transition-colors hover:bg-red-500/10 hover:text-red-300"
+            disabled={isDeletingChat || isUnfriending}
+            className={`rounded-full p-2 transition-colors ${
+              isDeletingChat || isUnfriending
+                ? "cursor-not-allowed text-white/30"
+                : "text-white/58 hover:bg-red-500/10 hover:text-red-300"
+            }`}
             title="Delete chat"
+            aria-busy={isDeletingChat}
           >
-            <Trash2 size={18} />
+            {isDeletingChat ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Trash2 size={18} />
+            )}
           </button>
-          <button className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white" title="Settings">
+          <button
+            className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white"
+            title="Settings"
+          >
             <Settings size={18} />
           </button>
         </div>
@@ -334,7 +370,9 @@ export function ChatArea({
               const showSeparator = currentLabel !== previousLabel;
 
               return (
-                <React.Fragment key={message.id || `${index}-${message.createdAt}`}>
+                <React.Fragment
+                  key={message.id || `${index}-${message.createdAt}`}
+                >
                   {showSeparator && (
                     <div className="my-4 flex items-center justify-center">
                       <span className="rounded-full border border-white/10 bg-white/[0.07] px-3 py-1 text-[11px] font-medium text-white/45 backdrop-blur-xl">
@@ -348,7 +386,9 @@ export function ChatArea({
                     status={messageStatuses[message.id]}
                     userId={userId}
                     senderName={
-                      message.senderId === userId ? "You" : selectedUser.username
+                      message.senderId === userId
+                        ? "You"
+                        : selectedUser.username
                     }
                     onReact={() => {}}
                     onReply={onReply}
@@ -373,7 +413,11 @@ export function ChatArea({
         {selectedFile && (
           <div className="glass-soft mb-3 flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-xs">
             <div className="flex min-w-0 items-center gap-3">
-              {filePreview ? (
+              {isUploadingFile ? (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#4CD964]/14 text-[#4CD964]">
+                  <Loader2 size={16} className="animate-spin" />
+                </div>
+              ) : filePreview ? (
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-black/10">
                   <img
                     src={filePreview}
@@ -388,16 +432,23 @@ export function ChatArea({
               )}
               <div className="min-w-0">
                 <p className="truncate font-semibold text-white">
-                  {selectedFile.name}
+                  {isUploadingFile ? "Uploading..." : selectedFile.name}
                 </p>
                 <p className="text-[10px] text-white/46">
-                  {(selectedFile.size / 1024).toFixed(1)} KB
+                  {isUploadingFile
+                    ? "Please wait..."
+                    : `${(selectedFile.size / 1024).toFixed(1)} KB`}
                 </p>
               </div>
             </div>
             <button
               onClick={handleCancelFile}
-              className="rounded-full p-1 text-white/50 transition-colors hover:bg-white/10 hover:text-red-300"
+              disabled={isUploadingFile}
+              className={`rounded-full p-1 transition-colors ${
+                isUploadingFile
+                  ? "cursor-not-allowed text-white/20"
+                  : "text-white/50 hover:bg-white/10 hover:text-red-300"
+              }`}
               aria-label="Cancel file upload"
             >
               <X size={16} />
@@ -440,15 +491,24 @@ export function ChatArea({
 
           <button
             onClick={handleSendClick}
-            disabled={!input.trim() && !selectedFile}
+            disabled={(!input.trim() && !selectedFile) || isUploadingFile}
             className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all active:scale-95 ${
-              input.trim() || selectedFile
+              (input.trim() || selectedFile) && !isUploadingFile
                 ? "bg-[#4CD964] text-black shadow-[0_0_26px_rgba(76,217,100,0.34)] hover:bg-[#39c856]"
                 : "bg-white/[0.08] text-white/38"
             }`}
           >
-            <span className="hidden sm:inline">Send</span>
-            <Send size={16} />
+            {isUploadingFile ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span className="hidden sm:inline">Uploading</span>
+              </>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Send</span>
+                <Send size={16} />
+              </>
+            )}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import redis from "@/lib/redis";
 
 export async function GET(
   req: NextRequest,
@@ -39,11 +40,16 @@ export async function DELETE(
 
     if (!conversation) {
       return NextResponse.json(
-        { message: "Conversation not found" },
-        { status: 404 },
+        { message: "Conversation already removed" },
+        { status: 200 },
       );
     }
 
+    const memberIds = conversation.members.map((member) => member.userId);
+
+    await prisma.messageStatus.deleteMany({
+      where: { message: { conversationId } },
+    });
     await prisma.message.deleteMany({
       where: { conversationId },
     });
@@ -53,6 +59,12 @@ export async function DELETE(
     await prisma.conversation.delete({
       where: { id: conversationId },
     });
+
+    if (memberIds.length === 2) {
+      const [userA, userB] = memberIds;
+      await redis.del(`${userA}:${userB}`);
+      await redis.del(`${userB}:${userA}`);
+    }
 
     return NextResponse.json(
       { message: "Conversation deleted" },

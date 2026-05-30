@@ -53,15 +53,16 @@ export async function POST(request: Request) {
     const existingConversation = await prisma.conversation.findFirst({
       where: {
         isGroup: false,
-        members: {
-          every: { userId: { in: [userId, friendId] } },
-        },
+        AND: [
+          { members: { some: { userId } } },
+          { members: { some: { userId: friendId } } },
+        ],
       },
-      include: { members: true },
     });
 
+    let conversationId: string;
     if (!existingConversation) {
-      await prisma.conversation.create({
+      const newConversation = await prisma.conversation.create({
         data: {
           isGroup: false,
           members: {
@@ -69,11 +70,85 @@ export async function POST(request: Request) {
           },
         },
       });
+      conversationId = newConversation.id;
+    } else {
+      conversationId = existingConversation.id;
+    }
+
+    const [initiatorUser, recipientUser] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          profilePic: true,
+          lastSeen: true,
+        },
+      }),
+      prisma.user.findUnique({
+        where: { id: friendId },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          profilePic: true,
+          lastSeen: true,
+        },
+      }),
+    ]);
+
+    const socketUrl =
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+      (process.env.NODE_ENV === "development"
+        ? "http://localhost:3001"
+        : "https://chat-app-server-ah27.onrender.com");
+    let socketEmitOk = false;
+    try {
+      const socketRes = await fetch(`${socketUrl}/internal/friend-added`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          initiatorId: userId,
+          recipientId: friendId,
+          conversationId,
+          initiatorUser,
+          recipientUser,
+        }),
+      });
+      socketEmitOk = socketRes.ok;
+      if (!socketEmitOk) {
+        console.error(
+          "Friend-added emit failed",
+          socketUrl,
+          socketRes.status,
+          await socketRes.text(),
+        );
+      }
+    } catch (emitError) {
+      console.error("Friend-added emit exception", emitError, socketUrl);
+      socketEmitOk = false;
+    }
+
+    if (!socketEmitOk) {
+      // Roll back: delete the friendship and conversation just created
+      await prisma.friendship.delete({ where: { id: friendship.id } });
+      // Only delete the conversation if we just created it (not an existing one)
+      if (!existingConversation) {
+        await prisma.conversation.delete({ where: { id: conversationId } });
+      }
+      return NextResponse.json(
+        { error: "Could not notify clients in real time. Please try again." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({
       message: "Friend added successfully",
       friendship,
+      conversationId,
+      friendUser: recipientUser,
+      isFriend: true,
     });
   } catch (error) {
     console.error("ADD FRIEND ERROR:", error);

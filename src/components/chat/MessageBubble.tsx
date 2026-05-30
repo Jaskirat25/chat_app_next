@@ -46,11 +46,13 @@ export function MessageBubble({
   const [editContent, setEditContent] = useState(message.content);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const displayStatus = status ?? "sent";
-  const timestamp = new Date(message.createdAt).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  }).toLowerCase();
+  const timestamp = new Date(message.createdAt)
+    .toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })
+    .toLowerCase();
 
   const handleSaveEdit = () => {
     if (editContent.trim() && editContent !== message.content) {
@@ -287,9 +289,34 @@ export function MessageBubble({
               </div>
             </div>
           ) : (
-            <div className="whitespace-pre-wrap">
-              {message.content}
-              {renderInlineMeta()}
+            <div>
+              {message.photoUrl && (
+                <div className="group/photo relative mb-2 max-w-[280px] overflow-hidden rounded-2xl border border-white/12 bg-black/10 shadow-lg sm:max-w-[320px]">
+                  <img
+                    src={message.photoUrl}
+                    alt="Shared image"
+                    className="max-h-[280px] w-full object-cover transition-transform duration-300 hover:scale-[1.02]"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover/photo:opacity-100">
+                    <a
+                      href={message.photoUrl}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-gray-950 shadow-sm transition-colors hover:bg-gray-100"
+                    >
+                      Download
+                    </a>
+                  </div>
+                </div>
+              )}
+              {message.content && (
+                <div className="whitespace-pre-wrap">
+                  {message.content}
+                  {renderInlineMeta()}
+                </div>
+              )}
+              {!message.content && message.photoUrl && renderInlineMeta()}
             </div>
           )}
 
