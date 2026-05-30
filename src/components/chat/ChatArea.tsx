@@ -93,6 +93,7 @@ export function ChatArea({
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,6 +104,14 @@ export function ChatArea({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typingFrom]);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+  }, [input]);
 
   useEffect(() => {
     return () => {
@@ -159,7 +168,7 @@ export function ChatArea({
 
   const filteredMessages = searchQuery.trim()
     ? messages.filter((msg) =>
-        msg.content.toLowerCase().includes(searchQuery.toLowerCase()),
+        msg.content?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     : messages;
 
@@ -191,7 +200,7 @@ export function ChatArea({
         <div
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className="absolute inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-[#4CD964]/70 bg-black/55 backdrop-blur-xl transition-all"
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center border-4 border-dashed border-[#4CD964]/70 bg-black/55 backdrop-blur-xl transition-all duration-200"
         >
           <div className="mb-3 rounded-full bg-[#4CD964]/14 p-4 text-[#4CD964]">
             <Paperclip size={48} />
@@ -207,7 +216,7 @@ export function ChatArea({
         <div className="flex min-w-0 items-center gap-3">
           <button
             onClick={onBack}
-            className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white md:hidden"
+            className="rounded-full p-2 text-white/58 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95 md:hidden"
             aria-label="Back to chat list"
           >
             <ArrowLeft size={20} />
@@ -247,7 +256,7 @@ export function ChatArea({
         </div>
 
         {showSearch && (
-          <div className="hidden max-w-xs flex-1 items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-2 sm:flex">
+          <div className="hidden max-w-xs flex-1 items-center gap-2 rounded-full border border-white/12 bg-white/[0.08] px-3 py-2 transition-colors focus-within:border-[#4CD964]/50 sm:flex">
             <Search size={14} className="text-white/48" />
             <input
               type="text"
@@ -286,7 +295,7 @@ export function ChatArea({
               setShowSearch(!showSearch);
               if (showSearch) setSearchQuery("");
             }}
-            className={`rounded-full p-2 transition-colors ${
+            className={`rounded-full p-2 transition-all duration-200 active:scale-95 ${
               showSearch
                 ? "bg-[#4CD964]/18 text-[#4CD964]"
                 : "text-white/58 hover:bg-white/10 hover:text-white"
@@ -298,7 +307,7 @@ export function ChatArea({
           <button
             onClick={onUnfriend}
             disabled={isUnfriending || isDeletingChat}
-            className={`rounded-full p-2 transition-colors ${
+            className={`rounded-full p-2 transition-all duration-200 active:scale-95 ${
               isUnfriending || isDeletingChat
                 ? "cursor-not-allowed text-white/30"
                 : "text-white/58 hover:bg-red-500/10 hover:text-red-300"
@@ -315,7 +324,7 @@ export function ChatArea({
           <button
             onClick={onDeleteChat}
             disabled={isDeletingChat || isUnfriending}
-            className={`rounded-full p-2 transition-colors ${
+            className={`rounded-full p-2 transition-all duration-200 active:scale-95 ${
               isDeletingChat || isUnfriending
                 ? "cursor-not-allowed text-white/30"
                 : "text-white/58 hover:bg-red-500/10 hover:text-red-300"
@@ -330,7 +339,7 @@ export function ChatArea({
             )}
           </button>
           <button
-            className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white"
+            className="rounded-full p-2 text-white/58 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
             title="Settings"
           >
             <Settings size={18} />
@@ -338,7 +347,7 @@ export function ChatArea({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-3 pt-1 sm:px-6">
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-1 [scrollbar-gutter:stable] sm:px-6">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
           {isLoading ? (
             Array.from({ length: 6 }).map((_, i) => (
@@ -456,7 +465,7 @@ export function ChatArea({
           </div>
         )}
 
-        <div className="glass-soft flex items-end gap-3 rounded-[24px] p-2.5">
+        <div className="glass-soft flex items-end gap-3 rounded-[24px] p-2.5 transition-colors focus-within:border-[#4CD964]/45">
           <input
             type="file"
             ref={fileInputRef}
@@ -465,14 +474,15 @@ export function ChatArea({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="mb-1 rounded-full p-2 text-white/52 transition-all hover:bg-white/10 hover:text-white"
+            className="mb-1 rounded-full p-2 text-white/52 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
             title="Attach file"
           >
             <Paperclip size={19} />
           </button>
 
-          <div className="flex min-h-11 flex-1 items-end gap-2 rounded-full border border-white/10 bg-black/18 px-4 py-2">
+          <div className="flex min-h-11 flex-1 items-end gap-2 rounded-[22px] border border-white/10 bg-black/18 px-4 py-2 transition-colors focus-within:border-[#4CD964]/45">
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => onInputChange(e.target.value)}
               onKeyDown={(e) => {
@@ -482,9 +492,8 @@ export function ChatArea({
                 }
               }}
               placeholder={`Message ${selectedUser.username}`}
-              className="max-h-32 min-h-[28px] flex-1 resize-none bg-transparent py-1 text-sm leading-5 text-white outline-none placeholder:text-white/38"
+              className="max-h-32 min-h-[28px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm leading-5 text-white outline-none placeholder:text-white/38"
               rows={1}
-              style={{ height: input ? "auto" : "32px" }}
             />
             <Mic size={18} className="mb-1 text-white/44" />
           </div>
@@ -492,7 +501,7 @@ export function ChatArea({
           <button
             onClick={handleSendClick}
             disabled={(!input.trim() && !selectedFile) || isUploadingFile}
-            className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all active:scale-95 ${
+            className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
               (input.trim() || selectedFile) && !isUploadingFile
                 ? "bg-[#4CD964] text-black shadow-[0_0_26px_rgba(76,217,100,0.34)] hover:bg-[#39c856]"
                 : "bg-white/[0.08] text-white/38"

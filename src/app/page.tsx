@@ -633,7 +633,7 @@ export default function Home() {
 
   const handleRetry = async (msg: Message) => {
     handleDeleteMessage(msg.id);
-    await handleSend(msg.content, msg.replyTo as any, null);
+    await handleSend(msg.content ?? "", msg.replyTo as any, null);
   };
 
   const handleSend = async (
@@ -710,7 +710,7 @@ export default function Home() {
             id: replyToMsg.id,
             senderName:
               replyToMsg.senderId === userId ? "You" : selectedUser.username,
-            content: replyToMsg.content,
+            content: replyToMsg.content ?? "Attachment",
           }
         : undefined,
     };

@@ -43,7 +43,7 @@ export function MessageBubble({
   onRetry,
 }: MessageBubbleProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(message.content);
+  const [editContent, setEditContent] = useState(message.content ?? "");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const displayStatus = status ?? "sent";
   const timestamp = new Date(message.createdAt)
@@ -67,7 +67,7 @@ export function MessageBubble({
       handleSaveEdit();
     } else if (e.key === "Escape") {
       setIsEditing(false);
-      setEditContent(message.content);
+      setEditContent(message.content ?? "");
     }
   };
 
@@ -126,7 +126,7 @@ export function MessageBubble({
   };
 
   const renderInlineMeta = () => (
-    <span className="float-right ml-2 mt-[6px] inline-flex translate-y-[5px] items-center gap-1 whitespace-nowrap pl-1 text-[11px] leading-none text-white/38">
+    <span className="float-right ml-2 mt-[6px] inline-flex translate-y-[5px] items-center gap-1 whitespace-nowrap pl-1 text-[11px] leading-none text-white/38 transition-colors">
       {message.isEdited && <span className="opacity-60">(edited)</span>}
       <span>{timestamp}</span>
       {isOwn && (
@@ -194,27 +194,27 @@ export function MessageBubble({
 
       <div className={`flex w-full ${isOwn ? "justify-end" : "justify-start"}`}>
         <div
-          className={`relative flex max-w-[65%] flex-col break-words rounded-2xl px-3.5 py-3 text-sm leading-relaxed text-white shadow-[0_14px_38px_rgba(0,0,0,0.22)] transition-all duration-200 max-sm:max-w-[82%] ${
+          className={`relative flex max-w-[65%] flex-col break-words rounded-2xl px-3.5 py-3 text-sm leading-relaxed text-white shadow-[0_14px_38px_rgba(0,0,0,0.22)] transition-all duration-200 group-hover:translate-y-[-1px] max-sm:max-w-[82%] ${
             isOwn
               ? "border border-[#4CD964]/18 bg-white/[0.15]"
               : "border border-white/12 bg-black/24"
           }`}
         >
           <div
-            className={`absolute top-[-18px] z-30 hidden items-center gap-0.5 rounded-full border border-white/12 bg-[#15171b]/80 p-1 shadow-xl backdrop-blur-xl group-hover:flex ${
+            className={`absolute top-[-18px] z-30 hidden items-center gap-0.5 rounded-full border border-white/12 bg-[#15171b]/80 p-1 shadow-xl backdrop-blur-xl transition-all group-hover:flex ${
               isOwn ? "right-3" : "left-3"
             }`}
           >
             <div className="relative">
               <button
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className="rounded-full p-1 text-white/48 transition-colors hover:bg-white/10 hover:text-white"
+                className="rounded-full p-1 text-white/48 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
                 title="React"
               >
                 <Smile size={14} />
               </button>
               {showEmojiPicker && (
-                <div className="absolute -top-10 left-0 z-40 flex items-center gap-1 rounded-full border border-white/12 bg-[#15171b]/90 px-2 py-1 shadow-lg backdrop-blur-xl">
+                <div className="modal-enter absolute -top-10 left-0 z-40 flex items-center gap-1 rounded-full border border-white/12 bg-[#15171b]/90 px-2 py-1 shadow-lg backdrop-blur-xl">
                   {EMOJI_LIST.map((emoji) => (
                     <button
                       key={emoji}
@@ -222,7 +222,7 @@ export function MessageBubble({
                         onReact(message.id, emoji);
                         setShowEmojiPicker(false);
                       }}
-                      className="rounded-full px-1 text-xs text-white/80 transition-transform hover:scale-110 hover:text-white"
+                      className="rounded-full px-1 text-xs text-white/80 transition-transform duration-150 hover:scale-110 hover:text-white"
                     >
                       {emoji}
                     </button>
@@ -233,7 +233,7 @@ export function MessageBubble({
 
             <button
               onClick={() => onReply(message)}
-              className="rounded-full p-1 text-white/48 transition-colors hover:bg-white/10 hover:text-white"
+              className="rounded-full p-1 text-white/48 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
               title="Reply"
             >
               <Reply size={14} />
@@ -244,16 +244,16 @@ export function MessageBubble({
                 <button
                   onClick={() => {
                     setIsEditing(true);
-                    setEditContent(message.content);
+                    setEditContent(message.content ?? "");
                   }}
-                  className="rounded-full p-1 text-white/48 transition-colors hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-1 text-white/48 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
                   title="Edit"
                 >
                   <Pencil size={14} />
                 </button>
                 <button
                   onClick={() => onDelete(message.id)}
-                  className="rounded-full p-1 text-white/48 transition-colors hover:bg-red-500/10 hover:text-red-300"
+                  className="rounded-full p-1 text-white/48 transition-all duration-200 hover:bg-red-500/10 hover:text-red-300 active:scale-95"
                   title="Delete"
                 >
                   <Trash2 size={14} />
@@ -268,20 +268,20 @@ export function MessageBubble({
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="min-h-10 w-full resize-none rounded-xl border border-white/15 bg-black/20 p-2 text-sm text-white outline-none placeholder:text-white/40"
+                className="min-h-10 w-full resize-none rounded-xl border border-white/15 bg-black/20 p-2 text-sm text-white outline-none transition-colors placeholder:text-white/40 focus:border-[#4CD964]/50"
                 rows={1}
                 autoFocus
               />
               <div className="flex justify-end gap-1.5 text-[10px]">
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="rounded-full bg-white/10 px-2.5 py-1 text-white/78 transition-colors hover:bg-white/16"
+                  className="rounded-full bg-white/10 px-2.5 py-1 text-white/78 transition-all duration-200 hover:bg-white/16 active:scale-95"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveEdit}
-                  className="flex items-center gap-1 rounded-full bg-[#4CD964] px-2.5 py-1 font-semibold text-black transition-colors hover:bg-[#39c856]"
+                  className="flex items-center gap-1 rounded-full bg-[#4CD964] px-2.5 py-1 font-semibold text-black transition-all duration-200 hover:bg-[#39c856] active:scale-95"
                 >
                   <Check size={10} />
                   Save

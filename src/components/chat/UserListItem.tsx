@@ -42,10 +42,10 @@ export function UserListItem({
   return (
     <div
       onClick={() => isFriend && onSelect(user)}
-      className={`group flex cursor-pointer items-center gap-3 border-b border-white/[0.08] px-2 py-3 transition-all last:border-b-0 ${
+      className={`group flex cursor-pointer items-center gap-3 border-b border-white/[0.08] px-2 py-3 transition-all duration-200 last:border-b-0 active:scale-[0.99] ${
         isSelected
           ? "rounded-2xl bg-white/[0.14] text-white shadow-[0_12px_34px_rgba(0,0,0,0.2)]"
-          : "text-white/82 hover:rounded-2xl hover:bg-white/[0.08] hover:shadow-[0_0_28px_rgba(255,255,255,0.08)]"
+          : "text-white/82 hover:translate-x-0.5 hover:rounded-2xl hover:bg-white/[0.08] hover:shadow-[0_0_28px_rgba(255,255,255,0.08)]"
       } ${!isFriend && !isSearchMode ? "opacity-50 pointer-events-none" : ""}`}
     >
       <div className="relative flex-shrink-0">
@@ -74,7 +74,7 @@ export function UserListItem({
         
         {/* Online Indicator */}
         <span
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-discord-bg ${
+          className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-discord-bg transition-colors duration-200 ${
             isOnline ? "bg-[#4CD964]" : "bg-white/30"
           }`}
         />
@@ -130,7 +130,7 @@ export function UserListItem({
             // Success state — shown for 2000ms after successful add
             <button
               disabled
-              className="ml-2 flex-shrink-0 rounded-full bg-[#4CD964]/30 px-3 py-1.5 text-xs font-semibold text-[#4CD964] cursor-default"
+              className="ml-2 flex-shrink-0 cursor-default rounded-full bg-[#4CD964]/30 px-3 py-1.5 text-xs font-semibold text-[#4CD964]"
               aria-label="Friend added"
             >
               <Check size={12} />
@@ -143,14 +143,20 @@ export function UserListItem({
                 if (!isAddingFriend) onAddFriend(user.id);
               }}
               disabled={isAddingFriend}
-              className={`ml-2 flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`ml-2 flex-shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition-all duration-200 active:scale-95 ${
                 isAddingFriend
-                  ? "bg-white/20 text-white/50 cursor-not-allowed"
+                  ? "cursor-not-allowed bg-white/20 text-white/50"
                   : addFriendError
                   ? "bg-red-500/80 text-white hover:bg-red-500"
                   : "bg-[#4CD964] text-black hover:bg-[#39c856]"
               }`}
-              aria-label={isAddingFriend ? "Adding friend..." : addFriendError ? "Retry adding friend" : "Add friend"}
+              aria-label={
+                isAddingFriend
+                  ? "Adding friend..."
+                  : addFriendError
+                    ? "Retry adding friend"
+                    : "Add friend"
+              }
             >
               {isAddingFriend ? (
                 <Loader2 size={12} className="animate-spin" />
@@ -167,7 +173,7 @@ export function UserListItem({
                 e.stopPropagation();
                 onSelect(user);
               }}
-              className="ml-2 flex-shrink-0 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
+              className="ml-2 flex-shrink-0 rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200 hover:bg-white/10 active:scale-95"
             >
               Chat
             </button>

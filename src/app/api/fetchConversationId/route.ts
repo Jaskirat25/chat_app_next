@@ -21,11 +21,14 @@ export async function GET(request: Request) {
   ) as JwtPayload;
 
   const userId = decoded.id;
+  if (typeof userId !== "string") {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
 
   try {
     const cacheKey = `${userId}:${receiver_id}`;
 
-    let cachedConversationId = await redis.get(cacheKey);
+    let cachedConversationId = await redis.get<string>(cacheKey);
 
     if (cachedConversationId != null) {
       const cachedConversation = await prisma.conversation.findUnique({

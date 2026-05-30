@@ -114,7 +114,7 @@ export function Sidebar({
           <CustomDrawer compact />
         </div>
 
-        <div className="glass-soft flex h-11 items-center gap-2 rounded-2xl px-3 transition-colors focus-within:border-[#4CD964]/60">
+        <div className="glass-soft flex h-11 items-center gap-2 rounded-2xl px-3 transition-colors duration-200 focus-within:border-[#4CD964]/60">
           <Search size={16} className="text-white/55" />
           <input
             type="text"
@@ -181,7 +181,7 @@ export function Sidebar({
               </h3>
               <button
                 onClick={() => setFilterUnread(!filterUnread)}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-all ${
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide transition-all duration-200 active:scale-95 ${
                   filterUnread
                     ? "bg-[#4CD964] text-black shadow-[0_0_18px_rgba(76,217,100,0.35)]"
                     : "bg-white/7 text-white/52 hover:bg-white/12 hover:text-white"
@@ -230,7 +230,7 @@ export function Sidebar({
 
       <button
         onClick={() => setShowAddContactModal(true)}
-        className="mt-4 flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/6 px-4 text-sm font-semibold text-white/86 transition-all hover:border-[#4CD964]/50 hover:bg-[#4CD964]/12 hover:text-white hover:shadow-[0_0_24px_rgba(76,217,100,0.16)]"
+        className="mt-4 flex h-12 shrink-0 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/6 px-4 text-sm font-semibold text-white/86 transition-all duration-200 hover:border-[#4CD964]/50 hover:bg-[#4CD964]/12 hover:text-white hover:shadow-[0_0_24px_rgba(76,217,100,0.16)] active:scale-[0.98]"
       >
         <UserPlus size={18} />
         Add Contact
@@ -238,14 +238,14 @@ export function Sidebar({
 
       {/* Add Contact Modal */}
       {showAddContactModal && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="glass-panel relative w-full rounded-t-[28px] md:rounded-[28px] md:max-w-md md:max-h-[90vh] flex flex-col p-4 max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm md:items-center">
+          <div className="modal-enter glass-panel relative flex max-h-[90vh] w-full flex-col rounded-t-[28px] p-4 md:max-h-[90vh] md:max-w-md md:rounded-[28px]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between shrink-0 mb-4">
+            <div className="mb-4 flex shrink-0 items-center justify-between">
               <h2 className="text-xl font-bold text-white">Add Contact</h2>
               <button
                 onClick={() => setShowAddContactModal(false)}
-                className="rounded-full p-2 text-white/58 transition-colors hover:bg-white/10 hover:text-white"
+                className="rounded-full p-2 text-white/58 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
                 aria-label="Close"
               >
                 <X size={20} />
@@ -253,7 +253,7 @@ export function Sidebar({
             </div>
 
             {/* Search Input */}
-            <div className="glass-soft flex h-11 items-center gap-2 rounded-2xl px-3 mb-4 shrink-0">
+            <div className="glass-soft mb-4 flex h-11 shrink-0 items-center gap-2 rounded-2xl px-3 transition-colors focus-within:border-[#4CD964]/60">
               <Search size={16} className="text-white/55" />
               <input
                 type="text"
@@ -277,7 +277,7 @@ export function Sidebar({
             </div>
 
             {/* Search Results */}
-            <div className="flex-1 overflow-y-auto pr-1 mb-3">
+            <div className="mb-3 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-gutter:stable]">
               {addContactSearch.trim() ? (
                 <div>
                   {isAddContactSearching && (
@@ -317,8 +317,8 @@ export function Sidebar({
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-sm text-white/52 mb-3">
+                <div className="py-8 text-center">
+                  <p className="mb-3 text-sm text-white/52">
                     Search for users to add them as contacts
                   </p>
                   <p className="text-xs text-white/38">
@@ -331,7 +331,7 @@ export function Sidebar({
             {/* Close Button */}
             <button
               onClick={() => setShowAddContactModal(false)}
-              className="shrink-0 h-10 rounded-2xl border border-white/15 bg-white/6 text-sm font-semibold text-white/86 transition-all hover:bg-white/12 hover:text-white"
+              className="h-10 shrink-0 rounded-2xl border border-white/15 bg-white/6 text-sm font-semibold text-white/86 transition-all duration-200 hover:bg-white/12 hover:text-white active:scale-[0.98]"
             >
               Close
             </button>
