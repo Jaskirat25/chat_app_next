@@ -640,17 +640,18 @@ export default function Home() {
     contentStr?: string,
     replyToMsg?: Message | null,
     file?: File | null,
+    mediaUrl?: string | null,
   ) => {
     const textToSend = typeof contentStr === "string" ? contentStr : input;
-    if ((textToSend.trim() === "" && !file) || !selectedUser) return;
+    if ((textToSend.trim() === "" && !file && !mediaUrl) || !selectedUser) return;
 
     setInput("");
     setReplyTo(null);
 
-    let photoUrl: string | null = null;
+    let photoUrl: string | null = mediaUrl || null;
 
     // Upload image if provided
-    if (file) {
+    if (file && !mediaUrl) {
       photoUrl = await uploadImageToCloudinary(file);
       if (!photoUrl) {
         const tempId = Date.now().toString();

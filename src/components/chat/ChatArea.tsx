@@ -20,6 +20,7 @@ import { Message, User } from "@/types/chat";
 import { MessageBubble } from "./MessageBubble";
 import { MessageSkeleton } from "./MessageSkeleton";
 import { TypingIndicator } from "./TypingIndicator";
+import VoiceRecorder from "../voice/VoiceRecorder";
 
 interface ChatAreaProps {
   selectedUser: User | null;
@@ -37,6 +38,7 @@ interface ChatAreaProps {
     content: string,
     replyTo?: Message | null,
     file?: File | null,
+    mediaUrl?: string | null,
   ) => void;
   onDeleteChat: () => void;
   onUnfriend: () => void;
@@ -100,6 +102,7 @@ export function ChatArea({
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -466,59 +469,78 @@ export function ChatArea({
         )}
 
         <div className="glass-soft flex items-end gap-3 rounded-[24px] p-2.5 transition-colors focus-within:border-[#4CD964]/45">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="mb-1 rounded-full p-2 text-white/52 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
-            title="Attach file"
-          >
-            <Paperclip size={19} />
-          </button>
-
-          <div className="flex min-h-11 flex-1 items-end gap-2 rounded-[22px] border border-white/10 bg-black/18 px-4 py-2 transition-colors focus-within:border-[#4CD964]/45">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => onInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendClick();
-                }
+          {isRecordingVoice ? (
+            <VoiceRecorder
+              onSend={(audioUrl) => {
+                onSend("", null, null, audioUrl);
+                setIsRecordingVoice(false);
               }}
-              placeholder={`Message ${selectedUser.username}`}
-              className="max-h-32 min-h-[28px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm leading-5 text-white outline-none placeholder:text-white/38"
-              rows={1}
+              onCancel={() => setIsRecordingVoice(false)}
             />
-            <Mic size={18} className="mb-1 text-white/44" />
-          </div>
+          ) : (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-1 rounded-full p-2 text-white/52 transition-all duration-200 hover:bg-white/10 hover:text-white active:scale-95"
+                title="Attach file"
+              >
+                <Paperclip size={19} />
+              </button>
 
-          <button
-            onClick={handleSendClick}
-            disabled={(!input.trim() && !selectedFile) || isUploadingFile}
-            className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
-              (input.trim() || selectedFile) && !isUploadingFile
-                ? "bg-[#4CD964] text-black shadow-[0_0_26px_rgba(76,217,100,0.34)] hover:bg-[#39c856]"
-                : "bg-white/[0.08] text-white/38"
-            }`}
-          >
-            {isUploadingFile ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                <span className="hidden sm:inline">Uploading</span>
-              </>
-            ) : (
-              <>
-                <span className="hidden sm:inline">Send</span>
-                <Send size={16} />
-              </>
-            )}
-          </button>
+              <div className="flex min-h-11 flex-1 items-end gap-2 rounded-[22px] border border-white/10 bg-black/18 px-4 py-2 transition-colors focus-within:border-[#4CD964]/45">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => onInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendClick();
+                    }
+                  }}
+                  placeholder={`Message ${selectedUser.username}`}
+                  className="max-h-32 min-h-[28px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm leading-5 text-white outline-none placeholder:text-white/38"
+                  rows={1}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsRecordingVoice(true)}
+                  className="mb-1 text-white/44 hover:text-white transition active:scale-95"
+                  title="Record voice message"
+                >
+                  <Mic size={18} />
+                </button>
+              </div>
+
+              <button
+                onClick={handleSendClick}
+                disabled={(!input.trim() && !selectedFile) || isUploadingFile}
+                className={`mb-0.5 flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold transition-all duration-200 active:scale-95 ${
+                  (input.trim() || selectedFile) && !isUploadingFile
+                    ? "bg-[#4CD964] text-black shadow-[0_0_26px_rgba(76,217,100,0.34)] hover:bg-[#39c856]"
+                    : "bg-white/[0.08] text-white/38"
+                }`}
+              >
+                {isUploadingFile ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span className="hidden sm:inline">Uploading</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">Send</span>
+                    <Send size={16} />
+                  </>
+                )}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

@@ -34,4 +34,5 @@ export interface Message {
   fileUrl?: string;
   fileName?: string;
   fileType?: string;
+  type?: "text" | "audio"; // New field to differentiate voice messages
 }
