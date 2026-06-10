@@ -16,10 +16,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const decoded = jwt.verify(
-    token,
-    process.env.NEXT_PUBLIC_JWT_SECRET!,
-  ) as JwtPayload;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
   const userId = decoded.id as string;
 
   try {

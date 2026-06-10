@@ -1,6 +1,7 @@
 node_modules
 # Keep environment variables out of version control
 .env
+.env.local
 .next
 out
 .DS_Store
@@ -29,3 +30,5 @@ dist
 *.lock
 test-results/
 /generated/prisma
+SourceTreeSetup-3.4.30.exe
+cometchat-app-react.zip

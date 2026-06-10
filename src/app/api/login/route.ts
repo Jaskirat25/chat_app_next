@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
     const token = jwt.sign(
       { id: user.id, email: user.email },
-      process.env.NEXT_PUBLIC_JWT_SECRET!,
+      process.env.JWT_SECRET!,
     );
 
     const response = NextResponse.json(

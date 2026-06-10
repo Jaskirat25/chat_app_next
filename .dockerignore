@@ -1,0 +1,11 @@
+node_modules
+.next
+.env
+.env.*
+*.log
+.git
+.gitignore
+README.md
+prisma/migrations
+SourceTreeSetup-3.4.30.exe
+cometchat-app-react.zip

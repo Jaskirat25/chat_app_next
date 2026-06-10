@@ -15,10 +15,7 @@ export async function GET(request: Request) {
   const token = (await cookies()).get("auth-token")?.value;
   if (!token) return NextResponse.error();
 
-  const decoded = jwt.verify(
-    token,
-    process.env.NEXT_PUBLIC_JWT_SECRET!,
-  ) as JwtPayload;
+  const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
 
   const userId = decoded.id;
   if (typeof userId !== "string") {
