@@ -340,6 +340,7 @@ export default function Home() {
     });
     socketRef.current = newSocket;
 
+    // --- Connection lifecycle ---
     newSocket.on("connect", () => {
       console.log("Socket connected on frontend");
       setSocketConnected(true);
@@ -365,40 +366,19 @@ export default function Home() {
       }
     });
 
-    return () => {
-      newSocket.off();
-      newSocket.disconnect();
-      socketRef.current = null;
-      setSocketConnected(false);
-    };
-  }, [userId]);
-
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
-
-  useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket) return;
-
-    const handlePresenceInit = (online: string[]) => {
+    // --- Presence ---
+    newSocket.on("presence-init", (online: string[]) => {
       console.log("Received presence-init:", online);
       setOnlineUsers(online);
-    };
+    });
 
-    const handlePresenceUpdate = (online: string[]) => {
+    newSocket.on("presence-update", (online: string[]) => {
       console.log("Received presence-update:", online);
       setOnlineUsers(online);
-    };
+    });
 
-    const appendMessage = (msg: Message) => {
-      setMessages((prev) => {
-        if (prev.some((message) => message.id === msg.id)) return prev;
-        return [...prev, msg];
-      });
-    };
-
-    const handleReceive = (msg: Message) => {
+    // --- Messages ---
+    newSocket.on("receive-message", (msg: Message) => {
       const activeUser = selectedUserRef.current;
       const isActiveChat =
         activeUser?.id === msg.senderId &&
@@ -406,69 +386,91 @@ export default function Home() {
           msg.conversationId === conversationIdRef.current);
 
       if (isActiveChat) {
-        appendMessage(msg);
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
         setTypingFrom(null);
         setUnreadCounts((prev) => ({ ...prev, [msg.senderId]: 0 }));
-        socket.emit("message-read", { receiverId: msg.senderId });
+        newSocket.emit("message-read", { receiverId: msg.senderId });
+
+        // Persist READ status to DB for this message
+        if (msg.id && msg.conversationId) {
+          fetch("/api/conversation/status", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              conversationId: msg.conversationId,
+              receiverId: activeUser?.id,
+              status: "READ",
+            }),
+          }).catch(() => {});
+        }
       } else {
         setUnreadCounts((prev) => ({
           ...prev,
           [msg.senderId]: (prev[msg.senderId] ?? 0) + 1,
         }));
       }
-    };
+    });
 
-    const handleTyping = ({ from }: { from: string }) => {
-      const activeUser = selectedUserRef.current;
-      if (activeUser?.id !== from) return;
-      setTypingFrom(from);
-      if (typingIndicatorTimeoutRef.current) {
-        clearTimeout(typingIndicatorTimeoutRef.current);
+    newSocket.on("message-delivered", ({ messageId }: { messageId: string }) => {
+      setMessageStatuses((prev) => ({ ...prev, [messageId]: "delivered" }));
+      // Persist DELIVERED status to DB
+      fetch("/api/conversation/status", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId, status: "DELIVERED" }),
+      }).catch(() => {});
+    });
+
+    newSocket.on("message-read", ({ from }: { from: string }) => {
+      if (selectedUserRef.current?.id !== from) return;
+      // Update UI for all sent messages in this conversation
+      const sentMsgIds = messagesRef.current
+        .filter((m) => m.senderId === userId)
+        .map((m) => m.id);
+      setMessageStatuses((prev) => {
+        const next = { ...prev };
+        sentMsgIds.forEach((id) => { next[id] = "read"; });
+        return next;
+      });
+      // Persist READ status to DB for all sent messages in this conversation
+      if (conversationIdRef.current) {
+        fetch("/api/conversation/status", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conversationId: conversationIdRef.current,
+            receiverId: from,
+            status: "READ",
+          }),
+        }).catch(() => {});
       }
-      typingIndicatorTimeoutRef.current = window.setTimeout(() => {
-        setTypingFrom(null);
-      }, 1800);
-    };
+    });
 
-    const handleStopTyping = ({ from }: { from: string }) => {
-      const activeUser = selectedUserRef.current;
-      if (activeUser?.id !== from) return;
+    // --- Typing ---
+    newSocket.on("typing", ({ from }: { from: string }) => {
+      if (selectedUserRef.current?.id !== from) return;
+      setTypingFrom(from);
+      if (typingIndicatorTimeoutRef.current)
+        clearTimeout(typingIndicatorTimeoutRef.current);
+      typingIndicatorTimeoutRef.current = window.setTimeout(
+        () => setTypingFrom(null),
+        1800,
+      );
+    });
+
+    newSocket.on("stop-typing", ({ from }: { from: string }) => {
+      if (selectedUserRef.current?.id !== from) return;
       setTypingFrom(null);
       if (typingIndicatorTimeoutRef.current) {
         clearTimeout(typingIndicatorTimeoutRef.current);
         typingIndicatorTimeoutRef.current = null;
       }
-    };
+    });
 
-    const handleMessageDelivered = ({ messageId }: { messageId: string }) => {
-      setMessageStatuses((prev) => ({
-        ...prev,
-        [messageId]: "delivered",
-      }));
-    };
-
-    const handleMessageRead = ({ from }: { from: string }) => {
-      const activeUser = selectedUserRef.current;
-      if (activeUser?.id !== from) return;
-      setMessageStatuses((prev) => {
-        const next = { ...prev };
-        messagesRef.current.forEach((message) => {
-          if (message.senderId === userId) {
-            next[message.id] = "read";
-          }
-        });
-        return next;
-      });
-    };
-
-    socket.on("presence-init", handlePresenceInit);
-    socket.on("presence-update", handlePresenceUpdate);
-    socket.on("receive-message", handleReceive);
-    socket.on("typing", handleTyping);
-    socket.on("stop-typing", handleStopTyping);
-    socket.on("message-delivered", handleMessageDelivered);
-    socket.on("message-read", handleMessageRead);
-
+    // --- Friend added ---
     type FriendAddedPayload = {
       newFriend: {
         id: string;
@@ -481,40 +483,29 @@ export default function Home() {
       forUserId: string;
     };
 
-    const handleFriendAdded = (payload: FriendAddedPayload) => {
+    newSocket.on("friend-added", (payload: FriendAddedPayload) => {
       const { newFriend, conversationId: newConversationId } = payload;
-
-      // Idempotency guard — skip if already in friends list
       setUserFriends((prev) => {
         if (prev.some((f) => f.id === newFriend.id)) return prev;
-        return [
-          ...prev,
-          { ...newFriend, lastSeen: String(newFriend.lastSeen) },
-        ];
+        return [...prev, { ...newFriend, lastSeen: String(newFriend.lastSeen) }];
       });
-
-      // Store conversationId in the lookup ref for immediate use in handleSend
       conversationIdLookupRef.current[newFriend.id] = newConversationId;
-
-      // Update search results if the user is currently shown
       setSearchResults((prev) =>
         prev.map((u) => (u.id === newFriend.id ? { ...u, isFriend: true } : u)),
       );
-    };
-
-    socket.on("friend-added", handleFriendAdded);
+    });
 
     return () => {
-      socket.off("presence-init", handlePresenceInit);
-      socket.off("presence-update", handlePresenceUpdate);
-      socket.off("receive-message", handleReceive);
-      socket.off("typing", handleTyping);
-      socket.off("stop-typing", handleStopTyping);
-      socket.off("message-delivered", handleMessageDelivered);
-      socket.off("message-read", handleMessageRead);
-      socket.off("friend-added", handleFriendAdded);
+      newSocket.off();
+      newSocket.disconnect();
+      socketRef.current = null;
+      setSocketConnected(false);
     };
   }, [userId]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (!selectedUser) return;
@@ -545,10 +536,11 @@ export default function Home() {
           loadedMessages.forEach((msg: Message) => {
             if (msg.senderId === userId) {
               if (msg.statuses && msg.statuses.length > 0) {
-                const status = msg.statuses[0] as any;
-                if (status.read) {
+                const statusRecord = msg.statuses[0] as any;
+                const statusValue: string = statusRecord.status ?? "";
+                if (statusValue === "READ") {
                   statusMap[msg.id] = "read";
-                } else if (status.delivered) {
+                } else if (statusValue === "DELIVERED") {
                   statusMap[msg.id] = "delivered";
                 } else {
                   statusMap[msg.id] = "sent";

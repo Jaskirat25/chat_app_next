@@ -39,6 +39,14 @@ export async function POST(req: NextRequest) {
         conversationId,
         senderId,
         receiverId,
+        statuses: {
+          create: {
+            status: "SENT",
+          },
+        },
+      },
+      include: {
+        statuses: true,
       },
     });
 
